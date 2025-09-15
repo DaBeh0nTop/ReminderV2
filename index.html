@@ -12,7 +12,7 @@
   <script type="module">
     import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm";
 
-    // ✅ Supabase setup
+    // ✅ Supabase Setup
     const SUPABASE_URL = "https://prhjibexjzdiineekmmi.supabase.co";
     const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InByaGppYmV4anpkaWluZWVrbW1pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc5NDk0MzMsImV4cCI6MjA3MzUyNTQzM30.IB9Eq7VS9PmUg8dh_0PLnDoE-gOmaFlebUgtoyreONA";
     const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -21,32 +21,60 @@
     const subjectsList = document.getElementById("subjects");
     const extraList = document.getElementById("extra");
     const loginMsg = document.getElementById("loginMsg");
+    const adminPanel = document.getElementById("adminPanel");
+    const adminBtn = document.getElementById("adminBtn");
 
-    // Load tasks
+    let isAdmin = false;
+
+    // 🔄 Load tasks
     async function loadData() {
       let { data: subjects } = await supabase.from("subjects").select("*");
       let { data: extra } = await supabase.from("extra").select("*");
 
+      // Subjects
       subjectsList.innerHTML = "";
       if (subjects?.length) {
         subjects.forEach(s => {
-          subjectsList.innerHTML += `<li><b>${s.name}</b> — ${s.task || "No task"} ${s.due ? "| Due: " + s.due : ""}</li>`;
+          subjectsList.innerHTML += `
+            <li onclick="showDetails('${s.name}', '${s.task}', '${s.due}', '${s.image_url || ""}')">
+              <b>${s.name}</b> — ${s.task || "No task"} ${s.due ? "| Due: " + s.due : ""}
+              ${isAdmin ? `<button class="delBtn" onclick="deleteTask(${s.id}, event)">❌</button>` : ""}
+            </li>`;
         });
       } else {
         subjectsList.innerHTML = `<li>No subjects yet ✅</li>`;
       }
 
+      // Extra Notes
       extraList.innerHTML = "";
       if (extra?.length) {
         extra.forEach(e => {
-          extraList.innerHTML += `<li>${e.note}</li>`;
+          extraList.innerHTML += `
+            <li onclick="showDetails('Note', '${e.note}', '', '${e.image_url || ""}')">
+              ${e.note}
+              ${isAdmin ? `<button class="delBtn" onclick="deleteExtra(${e.id}, event)">❌</button>` : ""}
+            </li>`;
         });
       } else {
         extraList.innerHTML = `<li>No notes yet 📝</li>`;
       }
     }
 
-    // Login
+    // 📌 Show detail modal
+    window.showDetails = function (title, task, due, img) {
+      const modal = document.getElementById("modal");
+      document.getElementById("modalTitle").innerText = title;
+      document.getElementById("modalTask").innerText = task || "No details";
+      document.getElementById("modalDue").innerText = due || "";
+      document.getElementById("modalImg").src = img || "";
+      document.getElementById("modalImg").style.display = img ? "block" : "none";
+      modal.style.display = "flex";
+    };
+    window.closeModal = function () {
+      document.getElementById("modal").style.display = "none";
+    };
+
+    // 🔑 Login
     window.login = async function () {
       const email = document.getElementById("email").value.trim();
       const password = document.getElementById("password").value.trim();
@@ -62,30 +90,64 @@
       } else {
         loginMsg.textContent = "✅ Welcome Admin!";
         loginMsg.style.color = "#90ee90";
-        document.getElementById("adminPanel").style.display = "block";
+        isAdmin = true;
+        adminPanel.style.display = "block";
+        loadData();
       }
     };
 
-    // Add subject task
+    // ➕ Add subject
     window.addTask = async function () {
       const name = document.getElementById("subjectName").value.trim();
       const task = document.getElementById("task").value.trim();
       const due = document.getElementById("due").value.trim();
+      const file = document.getElementById("subjectImg").files[0];
 
-      if (!name) return alert("⚠️ Enter subject name!");
+      let image_url = null;
+      if (file) {
+        const { data, error } = await supabase.storage.from("images").upload(Date.now() + "-" + file.name, file);
+        if (!error) {
+          image_url = `${SUPABASE_URL}/storage/v1/object/public/images/${data.path}`;
+        }
+      }
 
-      await supabase.from("subjects").insert([{ name, task, due }]);
+      await supabase.from("subjects").insert([{ name, task, due, image_url }]);
       loadData();
     };
 
-    // Add extra note
+    // ➕ Add note
     window.addExtra = async function () {
       const note = document.getElementById("note").value.trim();
-      if (!note) return alert("⚠️ Enter a note!");
+      const file = document.getElementById("extraImg").files[0];
 
-      await supabase.from("extra").insert([{ note }]);
+      let image_url = null;
+      if (file) {
+        const { data, error } = await supabase.storage.from("images").upload(Date.now() + "-" + file.name, file);
+        if (!error) {
+          image_url = `${SUPABASE_URL}/storage/v1/object/public/images/${data.path}`;
+        }
+      }
+
+      await supabase.from("extra").insert([{ note, image_url }]);
       loadData();
     };
+
+    // ❌ Delete
+    window.deleteTask = async function (id, e) {
+      e.stopPropagation();
+      await supabase.from("subjects").delete().eq("id", id);
+      loadData();
+    };
+    window.deleteExtra = async function (id, e) {
+      e.stopPropagation();
+      await supabase.from("extra").delete().eq("id", id);
+      loadData();
+    };
+
+    // Toggle Admin Panel
+    adminBtn.addEventListener("click", () => {
+      document.getElementById("loginPanel").classList.toggle("open");
+    });
 
     // Load initial data
     loadData();
@@ -136,8 +198,22 @@
       border-radius: 10px;
       font-size: 16px;
       transition: 0.2s;
+      cursor: pointer;
+      position: relative;
     }
     li:hover { background: rgba(255, 255, 255, 0.25); }
+
+    .delBtn {
+      position: absolute;
+      right: 10px;
+      top: 10px;
+      background: #ff4444;
+      border: none;
+      color: white;
+      border-radius: 5px;
+      padding: 4px 8px;
+      cursor: pointer;
+    }
 
     .button {
       background: #ffcc00;
@@ -162,6 +238,15 @@
       font-size: 15px;
     }
 
+    #loginPanel {
+      display: none;
+      background: rgba(0,0,0,0.35);
+      padding: 20px;
+      border-radius: 12px;
+      margin-top: 20px;
+    }
+    #loginPanel.open { display: block; }
+
     #adminPanel {
       background: rgba(0, 0, 0, 0.35);
       padding: 20px;
@@ -175,6 +260,40 @@
       margin-top: 8px;
       font-weight: 600;
     }
+
+    /* Modal */
+    #modal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.7);
+      justify-content: center;
+      align-items: center;
+    }
+    #modalContent {
+      background: #fff;
+      color: #333;
+      padding: 20px;
+      border-radius: 12px;
+      width: 90%;
+      max-width: 400px;
+      text-align: center;
+    }
+    #modal img {
+      max-width: 100%;
+      margin-top: 10px;
+      border-radius: 8px;
+    }
+    .closeBtn {
+      background: #ff4444;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      padding: 6px 12px;
+      cursor: pointer;
+      margin-top: 10px;
+    }
   </style>
 </head>
 <body>
@@ -186,21 +305,37 @@
   <h2>Extra Curricular / Things To Do</h2>
   <ul id="extra"></ul>
 
-  <h2>🔑 Admin Login</h2>
-  <input class="input-box" type="email" id="email" placeholder="Email"><br>
-  <input class="input-box" type="password" id="password" placeholder="Password"><br>
-  <button class="button" onclick="login()">Login</button>
-  <div id="loginMsg"></div>
+  <button id="adminBtn" class="button">🔑 Admin</button>
+  <div id="loginPanel">
+    <input class="input-box" type="email" id="email" placeholder="Email"><br>
+    <input class="input-box" type="password" id="password" placeholder="Password"><br>
+    <button class="button" onclick="login()">Login</button>
+    <div id="loginMsg"></div>
+  </div>
 
   <div id="adminPanel">
     <h2>⚙️ Admin Panel</h2>
     <input class="input-box" id="subjectName" placeholder="Subject"><br>
     <input class="input-box" id="task" placeholder="Task"><br>
     <input class="input-box" id="due" placeholder="Due Date"><br>
+    <input class="input-box" type="file" id="subjectImg"><br>
     <button class="button" onclick="addTask()">➕ Add Task</button>
     <br><br>
     <input class="input-box" id="note" placeholder="Extra Note"><br>
+    <input class="input-box" type="file" id="extraImg"><br>
     <button class="button" onclick="addExtra()">➕ Add Extra</button>
+  </div>
+
+  <!-- Modal for details -->
+  <div id="modal">
+    <div id="modalContent">
+      <h3 id="modalTitle"></h3>
+      <p id="modalTask"></p>
+      <p id="modalDue"></p>
+      <img id="modalImg" style="display:none;">
+      <br>
+      <button class="closeBtn" onclick="closeModal()">Close</button>
+    </div>
   </div>
 </body>
 </html>
