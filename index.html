@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>📚 Classwork & To-Do Reminder</title>
+  <title>📚 Class Reminder</title>
 
-  <!-- Fonts -->
+  <!-- Google Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
 
-  <!-- Supabase -->
+  <!-- Supabase JS -->
   <script src="https://unpkg.com/@supabase/supabase-js"></script>
 
   <style>
@@ -18,63 +18,70 @@
       padding: 0;
       background: linear-gradient(135deg, #667eea, #764ba2);
       color: #fff;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
     }
 
     header {
-      text-align: center;
       padding: 20px;
-      font-size: 26px;
+      background: rgba(0, 0, 0, 0.3);
+      font-size: 24px;
       font-weight: 600;
-      background: rgba(0,0,0,0.2);
       letter-spacing: 1px;
-    }
-
-    main {
-      padding: 20px;
-      max-width: 900px;
-      margin: auto;
+      text-align: center;
+      width: 100%;
     }
 
     h2 {
-      margin-top: 30px;
+      margin: 20px 0 10px;
       font-size: 22px;
       border-bottom: 2px solid #fff;
       display: inline-block;
       padding-bottom: 5px;
     }
 
-    ul {
-      list-style: none;
-      padding: 0;
-      margin: 20px 0;
+    .card-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 15px;
+      width: 90%;
+      max-width: 900px;
+      margin-bottom: 30px;
     }
 
-    li {
+    .card {
       background: rgba(255, 255, 255, 0.1);
-      padding: 15px;
-      margin: 10px 0;
       border-radius: 12px;
-      transition: 0.2s;
+      padding: 15px;
       cursor: pointer;
+      transition: transform 0.2s, background 0.2s;
     }
-    li:hover {
+
+    .card:hover {
+      transform: translateY(-3px);
       background: rgba(255, 255, 255, 0.2);
     }
 
-    .details {
-      display: none;
-      margin-top: 10px;
+    .card h3 {
+      margin: 0;
+      font-size: 18px;
+    }
+
+    .card p {
+      margin: 8px 0;
       font-size: 14px;
     }
 
     .images {
-      margin-top: 8px;
+      margin-top: 10px;
     }
 
     .images img {
-      max-width: 100px;
-      margin: 4px;
-      border-radius: 6px;
+      width: 100%;
+      border-radius: 8px;
+      margin-top: 5px;
     }
 
     .button {
@@ -85,16 +92,17 @@
       border-radius: 8px;
       padding: 10px 20px;
       cursor: pointer;
-      margin: 10px 5px;
+      margin: 5px;
       transition: 0.2s;
     }
+
     .button:hover {
       background: #ffdd33;
       transform: scale(1.05);
     }
 
     .input-box {
-      margin: 6px 0;
+      margin: 8px 0;
       padding: 10px;
       border: none;
       border-radius: 6px;
@@ -102,55 +110,55 @@
       max-width: 400px;
     }
 
-    #loginSection, #adminPanel {
-      text-align: center;
-      background: rgba(0,0,0,0.25);
-      padding: 20px;
-      border-radius: 12px;
-      margin: 20px auto;
-      max-width: 500px;
-    }
-
     #adminPanel {
+      background: rgba(0, 0, 0, 0.4);
+      padding: 20px;
+      margin: 20px auto;
+      border-radius: 12px;
+      max-width: 600px;
       display: none;
     }
 
-    .deleteBtn {
-      display: none;
-      background: #ff5555;
+    .delete-btn {
+      background: red;
       color: white;
-      margin-left: 10px;
-      font-size: 12px;
       padding: 5px 10px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      margin-top: 8px;
+      display: none; /* hidden for non-admin */
     }
-    .deleteBtn:hover {
-      background: #ff7777;
+
+    .toggle-btn {
+      margin: 20px;
+    }
+
+    @media(max-width: 600px) {
+      .card-list {
+        grid-template-columns: 1fr;
+      }
     }
   </style>
 </head>
 <body>
   <header>📚 Classwork & To-Do Reminder</header>
 
-  <main>
-    <h2>Subjects Need To Do</h2>
-    <ul id="subjects"></ul>
+  <h2>Subjects</h2>
+  <div id="subjects" class="card-list"></div>
 
-    <h2>Extra Curricular / Things To Do</h2>
-    <ul id="extra"></ul>
-  </main>
+  <h2>Extra Notes</h2>
+  <div id="extra" class="card-list"></div>
 
-  <!-- Login -->
-  <div id="loginSection">
-    <h2>🔑 Admin Login</h2>
-    <input class="input-box" type="email" id="email" placeholder="Email"><br>
-    <input class="input-box" type="password" id="password" placeholder="Password"><br>
-    <button class="button" onclick="login()">Login</button>
-  </div>
+  <h2>🔑 Admin Login</h2>
+  <input class="input-box" type="email" id="email" placeholder="Email"><br>
+  <input class="input-box" type="password" id="password" placeholder="Password"><br>
+  <button class="button" onclick="login()">Login</button>
 
-  <!-- Admin Panel -->
+  <button class="button toggle-btn" onclick="toggleAdmin()">⚙️ Toggle Admin Panel</button>
+
   <div id="adminPanel">
     <h2>⚙️ Admin Panel</h2>
-    <button class="button" onclick="togglePanel()">⬆️ Close Panel</button>
 
     <h3>Add Subject Task</h3>
     <input class="input-box" id="subjectName" placeholder="Subject"><br>
@@ -160,135 +168,157 @@
     <button class="button" onclick="addTask()">➕ Add Task</button>
 
     <h3>Add Extra Note</h3>
-    <input class="input-box" id="note" placeholder="Extra Note"><br>
+    <input class="input-box" id="note" placeholder="Note"><br>
     <input class="input-box" type="file" id="extraImages" multiple><br>
     <button class="button" onclick="addExtra()">➕ Add Extra</button>
   </div>
 
-  <script type="module">
-    import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm";
-
+  <script>
+    // 🚀 Supabase setup
     const SUPABASE_URL = "https://prhjibexjzdiineekmmi.supabase.co";
-    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InByaGppYmV4anpkaWluZWVrbW1pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc5NDk0MzMsImV4cCI6MjA3MzUyNTQzM30.IB9Eq7VS9PmUg8dh_0PLnDoE-gOmaFlebUgtoyreONA";
-    const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+    const SUPABASE_KEY = "YOUR_SUPABASE_ANON_KEY";
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    const subjectsList = document.getElementById("subjects");
-    const extraList = document.getElementById("extra");
+    const subjectsDiv = document.getElementById("subjects");
+    const extraDiv = document.getElementById("extra");
+    const adminPanel = document.getElementById("adminPanel");
 
     let isAdmin = false;
 
+    // Load tasks
     async function loadData() {
-      let { data: subjects } = await supabase.from("subjects").select("*").order("id", { ascending: false });
-      let { data: extra } = await supabase.from("extra").select("*").order("id", { ascending: false });
+      let { data: subjects } = await supabaseClient.from("subjects").select("*");
+      let { data: extra } = await supabaseClient.from("extra").select("*");
 
-      subjectsList.innerHTML = "";
+      subjectsDiv.innerHTML = "";
+      extraDiv.innerHTML = "";
+
       subjects.forEach(s => {
-        const li = document.createElement("li");
-        li.innerHTML = `<b>${s.name}</b>`;
-        const details = document.createElement("div");
-        details.classList.add("details");
-        details.innerHTML = `
-          <div>${s.task || "No Task"} ${s.due ? "| Due: " + s.due : ""}</div>
-          <div class="images">${s.images ? s.images.split(",").map(img => `<img src="${img}">`).join("") : ""}</div>
-          <button class="deleteBtn" onclick="deleteSubject(${s.id})">🗑 Delete</button>
-        `;
-        li.appendChild(details);
-        li.onclick = () => {
-          details.style.display = details.style.display === "block" ? "none" : "block";
-        };
-        subjectsList.appendChild(li);
+        const card = document.createElement("div");
+        card.className = "card";
+        card.innerHTML = `<h3>${s.name}</h3>
+          <p>${s.task || ""} ${s.due ? " | Due: " + s.due : ""}</p>`;
+
+        if (s.images) {
+          const imgContainer = document.createElement("div");
+          imgContainer.className = "images";
+          s.images.forEach(url => {
+            const img = document.createElement("img");
+            img.src = url;
+            imgContainer.appendChild(img);
+          });
+          card.appendChild(imgContainer);
+        }
+
+        const delBtn = document.createElement("button");
+        delBtn.textContent = "🗑 Delete";
+        delBtn.className = "delete-btn";
+        delBtn.onclick = () => deleteTask(s.id);
+        if (isAdmin) delBtn.style.display = "block";
+        card.appendChild(delBtn);
+
+        subjectsDiv.appendChild(card);
       });
 
-      extraList.innerHTML = "";
       extra.forEach(e => {
-        const li = document.createElement("li");
-        li.innerHTML = `<b>${e.note}</b>`;
-        const details = document.createElement("div");
-        details.classList.add("details");
-        details.innerHTML = `
-          <div class="images">${e.images ? e.images.split(",").map(img => `<img src="${img}">`).join("") : ""}</div>
-          <button class="deleteBtn" onclick="deleteExtra(${e.id})">🗑 Delete</button>
-        `;
-        li.appendChild(details);
-        li.onclick = () => {
-          details.style.display = details.style.display === "block" ? "none" : "block";
-        };
-        extraList.appendChild(li);
-      });
+        const card = document.createElement("div");
+        card.className = "card";
+        card.innerHTML = `<p>${e.note}</p>`;
 
-      if (isAdmin) {
-        document.querySelectorAll(".deleteBtn").forEach(btn => btn.style.display = "inline-block");
-      }
+        if (e.images) {
+          const imgContainer = document.createElement("div");
+          imgContainer.className = "images";
+          e.images.forEach(url => {
+            const img = document.createElement("img");
+            img.src = url;
+            imgContainer.appendChild(img);
+          });
+          card.appendChild(imgContainer);
+        }
+
+        const delBtn = document.createElement("button");
+        delBtn.textContent = "🗑 Delete";
+        delBtn.className = "delete-btn";
+        delBtn.onclick = () => deleteExtra(e.id);
+        if (isAdmin) delBtn.style.display = "block";
+        card.appendChild(delBtn);
+
+        extraDiv.appendChild(card);
+      });
     }
 
-    async function uploadImages(files) {
+    // Upload files and return URLs
+    async function uploadFiles(files) {
       const urls = [];
-      for (let file of files) {
+      for (const file of files) {
         const filePath = `${Date.now()}-${file.name}`;
-        let { data, error } = await supabase.storage.from("uploads").upload(filePath, file);
+        let { error } = await supabaseClient.storage.from("uploads").upload(filePath, file);
         if (!error) {
-          const { data: { publicUrl } } = supabase.storage.from("uploads").getPublicUrl(filePath);
-          urls.push(publicUrl);
+          const { data } = supabaseClient.storage.from("uploads").getPublicUrl(filePath);
+          urls.push(data.publicUrl);
         }
       }
-      return urls.join(",");
+      return urls;
     }
 
-    window.login = async function () {
+    // Admin login
+    async function login() {
       const email = document.getElementById("email").value;
       const password = document.getElementById("password").value;
 
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+
       if (error) {
         alert("❌ Login failed: " + error.message);
       } else {
+        alert("✅ Welcome Admin!");
         isAdmin = true;
-        document.getElementById("loginSection").style.display = "none";
-        document.getElementById("adminPanel").style.display = "block";
         loadData();
       }
     }
 
-    window.togglePanel = function () {
-      document.getElementById("adminPanel").style.display = "none";
-      document.getElementById("loginSection").style.display = "block";
-      supabase.auth.signOut();
-      isAdmin = false;
-      loadData();
+    // Toggle admin panel
+    function toggleAdmin() {
+      adminPanel.style.display = adminPanel.style.display === "none" ? "block" : "none";
     }
 
-    window.addTask = async function () {
+    // Add subject
+    async function addTask() {
       const name = document.getElementById("subjectName").value;
       const task = document.getElementById("task").value;
       const due = document.getElementById("due").value;
       const files = document.getElementById("subjectImages").files;
 
-      const imgUrls = files.length > 0 ? await uploadImages(files) : "";
+      const images = files.length ? await uploadFiles(files) : [];
 
-      await supabase.from("subjects").insert([{ name, task, due, images: imgUrls }]);
+      await supabaseClient.from("subjects").insert([{ name, task, due, images }]);
       loadData();
     }
 
-    window.addExtra = async function () {
+    // Add extra
+    async function addExtra() {
       const note = document.getElementById("note").value;
       const files = document.getElementById("extraImages").files;
 
-      const imgUrls = files.length > 0 ? await uploadImages(files) : "";
+      const images = files.length ? await uploadFiles(files) : [];
 
-      await supabase.from("extra").insert([{ note, images: imgUrls }]);
+      await supabaseClient.from("extra").insert([{ note, images }]);
       loadData();
     }
 
-    window.deleteSubject = async function (id) {
-      await supabase.from("subjects").delete().eq("id", id);
+    // Delete subject
+    async function deleteTask(id) {
+      await supabaseClient.from("subjects").delete().eq("id", id);
       loadData();
     }
 
-    window.deleteExtra = async function (id) {
-      await supabase.from("extra").delete().eq("id", id);
+    // Delete extra
+    async function deleteExtra(id) {
+      await supabaseClient.from("extra").delete().eq("id", id);
       loadData();
     }
 
+    // Start
     loadData();
   </script>
 </body>
