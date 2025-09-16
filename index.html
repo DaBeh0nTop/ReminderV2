@@ -1,243 +1,232 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>📚 To-Do Reminder</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-  <!-- Fonts -->
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap" rel="stylesheet">
-
-  <!-- Supabase -->
-  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Reminders App</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     body {
       margin: 0;
       font-family: 'Poppins', sans-serif;
-      background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
-      color: white;
-      min-height: 100vh;
+      background: linear-gradient(135deg, #f7f7f7, #eaeaea);
+      color: #333;
     }
 
     header {
+      background: #4f46e5;
+      color: white;
+      padding: 1rem;
       text-align: center;
-      padding: 20px;
-      font-size: 2rem;
-      font-weight: bold;
-      background: rgba(0,0,0,0.2);
+      font-weight: 700;
+      font-size: 1.5rem;
     }
 
-    .container {
-      padding: 20px;
-      display: grid;
-      gap: 20px;
+    #auth, #app {
+      max-width: 800px;
+      margin: 2rem auto;
+      padding: 1.5rem;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 6px 16px rgba(0,0,0,0.1);
     }
 
     h2 {
-      margin-top: 40px;
-      text-align: center;
+      margin-top: 0;
+      font-weight: 600;
+      color: #4f46e5;
     }
 
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 20px;
-    }
-
-    .card {
-      background: white;
-      color: black;
-      border-radius: 12px;
-      padding: 15px;
-      box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-      transition: transform 0.2s;
-    }
-
-    .card:hover {
-      transform: translateY(-5px);
-    }
-
-    .card img {
-      max-width: 100%;
-      border-radius: 8px;
-      margin-top: 10px;
-    }
-
-    .btn {
-      padding: 8px 12px;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      margin-top: 10px;
-      font-weight: bold;
-    }
-
-    .btn-yellow { background: #fcd34d; }
-    .btn-yellow:hover { background: #fbbf24; }
-
-    .btn-red { background: #ef4444; color: white; }
-    .btn-red:hover { background: #dc2626; }
-
-    .admin-section, .login-section {
-      background: rgba(255,255,255,0.1);
-      padding: 20px;
-      border-radius: 12px;
-      margin-top: 20px;
-    }
-
-    input, textarea {
+    input, textarea, button {
       width: 100%;
-      padding: 10px;
-      margin: 8px 0;
+      padding: 0.7rem;
+      margin: 0.5rem 0;
       border-radius: 8px;
-      border: none;
+      border: 1px solid #ccc;
       font-size: 1rem;
     }
 
-    .hidden { display: none; }
+    button {
+      cursor: pointer;
+      background: #4f46e5;
+      color: white;
+      border: none;
+      transition: background 0.2s;
+    }
+
+    button:hover {
+      background: #4338ca;
+    }
+
+    .reminder {
+      background: #fafafa;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      padding: 1rem;
+      margin: 1rem 0;
+    }
+
+    .reminder h3 {
+      margin: 0 0 0.5rem 0;
+      color: #111;
+    }
+
+    .images {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 0.5rem;
+    }
+
+    .images img {
+      width: 120px;
+      height: 90px;
+      object-fit: cover;
+      border-radius: 8px;
+    }
+
+    .delete-btn {
+      margin-top: 0.5rem;
+      background: crimson;
+      display: none; /* hidden by default */
+    }
+
+    .delete-btn:hover {
+      background: darkred;
+    }
+
+    #logout {
+      background: #dc2626;
+      margin-top: 1rem;
+    }
   </style>
 </head>
 <body>
-  <header>📚 Classwork & To-Do Reminder</header>
-  <div class="container">
+  <header>📌 Reminders App</header>
 
-    <h2>Subjects</h2>
-    <div id="subjectsGrid" class="grid"></div>
+  <!-- AUTH FORM -->
+  <div id="auth">
+    <h2>Login</h2>
+    <input type="email" id="email" placeholder="Email"/>
+    <input type="password" id="password" placeholder="Password"/>
+    <button id="loginBtn">Login</button>
+  </div>
 
-    <h2>Extra Notes</h2>
-    <div id="notesGrid" class="grid"></div>
+  <!-- APP CONTENT -->
+  <div id="app" style="display:none;">
+    <h2>Add Reminder</h2>
+    <input id="title" placeholder="Title"/>
+    <textarea id="desc" placeholder="Description"></textarea>
+    <input type="date" id="due"/>
+    <input type="file" id="images" multiple/>
+    <button id="addBtn">Add Reminder</button>
 
-    <!-- Login -->
-    <div class="login-section" id="loginSection">
-      <h2>Admin Login</h2>
-      <input type="email" id="email" placeholder="Email">
-      <input type="password" id="password" placeholder="Password">
-      <button class="btn btn-yellow" onclick="login()">Login</button>
-    </div>
+    <h2>Reminders</h2>
+    <div id="reminders"></div>
 
-    <!-- Admin Panel -->
-    <div class="admin-section hidden" id="adminPanel">
-      <h2>⚙️ Admin Panel</h2>
-
-      <h3>Add Subject Task</h3>
-      <input type="text" id="subjectName" placeholder="Subject Name">
-      <input type="text" id="subjectTask" placeholder="Task">
-      <input type="text" id="subjectDue" placeholder="Due Date">
-      <input type="file" id="subjectImages" multiple>
-      <button class="btn btn-yellow" onclick="addSubject()">Add Subject Task</button>
-
-      <h3>Add Extra Note</h3>
-      <textarea id="noteText" placeholder="Note"></textarea>
-      <input type="file" id="noteImages" multiple>
-      <button class="btn btn-yellow" onclick="addNote()">Add Note</button>
-    </div>
+    <button id="logout">Logout</button>
   </div>
 
   <script>
-    // 🧱 Supabase Client
-    const supabaseUrl = "https://zmylcejjzaawllgdvgxc.supabase.co";
-    const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpteWxjZWpqemFhd2xsZ2R2Z3hjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc5NDkwODUsImV4cCI6MjA3MzUyNTA4NX0.o-g9iY75mzJwPZ6ZRDnQIcdneO8GHUZfElbPM8LEhKQ";
-    const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+    const supabaseUrl = "YOUR_SUPABASE_URL";
+    const supabaseKey = "YOUR_SUPABASE_ANON_KEY";
+    const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 
-    let isAdmin = false;
+    const authDiv = document.getElementById("auth");
+    const appDiv = document.getElementById("app");
+    const loginBtn = document.getElementById("loginBtn");
+    const logoutBtn = document.getElementById("logout");
+    const addBtn = document.getElementById("addBtn");
+    const remindersDiv = document.getElementById("reminders");
 
-    // 🧱 Load Data
-    async function loadData() {
-      document.getElementById('subjectsGrid').innerHTML = "";
-      document.getElementById('notesGrid').innerHTML = "";
+    let currentUser = null;
+    let isAdmin = false; // toggle based on your auth rules
 
-      let { data: subjects } = await supabase.from('subjects').select('*').order('id');
-      let { data: extra } = await supabase.from('extra').select('*').order('id');
+    // --- LOGIN ---
+    loginBtn.onclick = async () => {
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
 
-      subjects.forEach(sub => {
-        const div = document.createElement('div');
-        div.className = "card";
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) {
+        alert(error.message);
+      } else {
+        currentUser = data.user;
+        authDiv.style.display = "none";
+        appDiv.style.display = "block";
+        checkAdmin();
+        loadReminders();
+      }
+    };
+
+    // --- LOGOUT ---
+    logoutBtn.onclick = async () => {
+      await supabase.auth.signOut();
+      location.reload();
+    };
+
+    // --- CHECK ADMIN ---
+    async function checkAdmin() {
+      // Simplified: mark first user as admin
+      if (currentUser && currentUser.email.includes("admin")) {
+        isAdmin = true;
+      }
+    }
+
+    // --- LOAD REMINDERS ---
+    async function loadReminders() {
+      remindersDiv.innerHTML = "";
+      const { data, error } = await supabase.from("reminders").select("*").order("id", { ascending: false });
+      if (error) {
+        console.error(error);
+        return;
+      }
+      data.forEach(rem => {
+        const div = document.createElement("div");
+        div.className = "reminder";
         div.innerHTML = `
-          <h3>${sub.name}</h3>
-          <p><b>Task:</b> ${sub.task}</p>
-          <p><b>Due:</b> ${sub.due}</p>
-          ${(sub.images || []).map(url => `<img src="${url}">`).join("")}
-          ${isAdmin ? `<button class="btn btn-red" onclick="deleteSubject(${sub.id})">Delete</button>` : ""}
+          <h3>${rem.title}</h3>
+          <p>${rem.desc || ""}</p>
+          <p>📅 ${rem.due || "No deadline"}</p>
+          <div class="images">
+            ${rem.images ? rem.images.map(url => `<img src="${url}">`).join("") : ""}
+          </div>
         `;
-        document.getElementById('subjectsGrid').appendChild(div);
-      });
-
-      extra.forEach(note => {
-        const div = document.createElement('div');
-        div.className = "card";
-        div.innerHTML = `
-          <p>${note.note}</p>
-          ${(note.images || []).map(url => `<img src="${url}">`).join("")}
-          ${isAdmin ? `<button class="btn btn-red" onclick="deleteNote(${note.id})">Delete</button>` : ""}
-        `;
-        document.getElementById('notesGrid').appendChild(div);
+        const delBtn = document.createElement("button");
+        delBtn.className = "delete-btn";
+        delBtn.innerText = "Delete";
+        delBtn.onclick = async () => {
+          await supabase.from("reminders").delete().eq("id", rem.id);
+          loadReminders();
+        };
+        if (isAdmin) delBtn.style.display = "block";
+        div.appendChild(delBtn);
+        remindersDiv.appendChild(div);
       });
     }
 
-    // 🧱 Login
-    async function login() {
-      const email = document.getElementById('email').value;
-      const password = document.getElementById('password').value;
+    // --- ADD REMINDER ---
+    addBtn.onclick = async () => {
+      const title = document.getElementById("title").value;
+      const desc = document.getElementById("desc").value;
+      const due = document.getElementById("due").value;
+      const files = document.getElementById("images").files;
 
-      let { data, error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) { alert("Login failed: " + error.message); return; }
-
-      isAdmin = true;
-      document.getElementById('loginSection').classList.add('hidden');
-      document.getElementById('adminPanel').classList.remove('hidden');
-      loadData();
-    }
-
-    // 🧱 Upload Files to Supabase Storage
-    async function uploadFiles(files) {
-      const urls = [];
-      for (let file of files) {
-        const filePath = `${Date.now()}-${file.name}`;
-        let { error } = await supabase.storage.from('uploads').upload(filePath, file);
-        if (!error) {
-          const { data } = supabase.storage.from('uploads').getPublicUrl(filePath);
-          urls.push(data.publicUrl);
+      let imageUrls = [];
+      for (let f of files) {
+        const filePath = `${Date.now()}-${f.name}`;
+        const { data, error } = await supabase.storage.from("uploads").upload(filePath, f);
+        if (error) {
+          console.error(error);
+        } else {
+          const { data: { publicUrl } } = supabase.storage.from("uploads").getPublicUrl(filePath);
+          imageUrls.push(publicUrl);
         }
       }
-      return urls;
-    }
 
-    // 🧱 Add Subject
-    async function addSubject() {
-      const name = document.getElementById('subjectName').value;
-      const task = document.getElementById('subjectTask').value;
-      const due = document.getElementById('subjectDue').value;
-      const files = document.getElementById('subjectImages').files;
-      const urls = await uploadFiles(files);
-
-      await supabase.from('subjects').insert([{ name, task, due, images: urls }]);
-      loadData();
-    }
-
-    // 🧱 Add Note
-    async function addNote() {
-      const note = document.getElementById('noteText').value;
-      const files = document.getElementById('noteImages').files;
-      const urls = await uploadFiles(files);
-
-      await supabase.from('extra').insert([{ note, images: urls }]);
-      loadData();
-    }
-
-    // 🧱 Delete
-    async function deleteSubject(id) {
-      await supabase.from('subjects').delete().eq('id', id);
-      loadData();
-    }
-
-    async function deleteNote(id) {
-      await supabase.from('extra').delete().eq('id', id);
-      loadData();
-    }
-
-    // First Load
-    loadData();
+      await supabase.from("reminders").insert([{ title, desc, due, images: imageUrls }]);
+      loadReminders();
+    };
   </script>
 </body>
 </html>
