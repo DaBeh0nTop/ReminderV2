@@ -3,454 +3,348 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Classwork & To-Do Reminder</title>
-  <!-- UI font -->
+  <title>📚 Classwork & To-Do Reminder</title>
+  <!-- Google Font -->
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
-  <!-- Supabase v2 UMD -->
+  <!-- Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 
   <style>
-    :root{
-      --bg1:#6a11cb; --bg2:#2575fc; --card: rgba(255,255,255,0.12);
+    :root {
+      --bg1:#6a11cb; --bg2:#2575fc;
+      --panel:rgba(255,255,255,0.1);
       --accent:#ffd166; --danger:#ff6961;
     }
-    *{box-sizing:border-box}
-    body{
+    * { box-sizing:border-box; }
+    body {
       margin:0; font-family:'Poppins',sans-serif;
-      background: linear-gradient(135deg,var(--bg1),var(--bg2));
-      color:#fff; min-height:100vh; padding:20px;
+      background:linear-gradient(135deg,var(--bg1),var(--bg2));
+      color:#fff; min-height:100vh;
       display:flex; flex-direction:column; align-items:center;
+      padding:20px;
     }
-    header{width:100%; max-width:1100px; text-align:center; margin-bottom:18px}
-    header h1{margin:0; font-size:22px; font-weight:600}
-    .container{width:100%; max-width:900px;}
-
-    .panel{background:var(--card); border-radius:12px; padding:16px; margin-bottom:14px; box-shadow: 0 6px 18px rgba(0,0,0,0.15)}
-    .row{display:flex;gap:12px;align-items:center}
-    .left{flex:1}
-    .right{flex:0 0 auto}
-    .small{font-size:13px;opacity:0.9}
-
-    /* subjects list style to match your required text output */
-    .subjects-header{display:flex;align-items:center;gap:12px}
-    .count-bubble{background:rgba(255,255,255,0.12);padding:6px 10px;border-radius:12px;font-weight:600}
-
-    ul.plain{list-style:none;padding-left:0;margin:12px 0}
-    li.item{
-      padding:8px 10px;border-radius:8px;background:rgba(255,255,255,0.06);
-      margin-bottom:6px;display:flex;align-items:center;justify-content:space-between;
-      gap:12px;font-size:15px;
+    header {
+      text-align:center; margin-bottom:20px;
     }
-    .subject-left{display:flex;flex-direction:column;gap:6px}
-    .subject-line{font-weight:600}
-    .subject-detail{font-size:14px;opacity:0.92}
+    header h1 {
+      font-size:24px; margin:0; font-weight:600;
+    }
+    .container { width:100%; max-width:900px; }
 
-    .images-row{display:flex;gap:8px;margin-top:8px}
-    .images-row img{width:84px;height:64px;object-fit:cover;border-radius:6px;border:1px solid rgba(255,255,255,0.06)}
+    .panel {
+      background:var(--panel);
+      border-radius:12px;
+      padding:16px; margin-bottom:16px;
+      box-shadow:0 6px 16px rgba(0,0,0,0.25);
+    }
+    .small { font-size:13px; opacity:0.85; }
 
-    /* admin form */
-    input[type=text], input[type=email], input[type=date], textarea, input[type=file]{width:100%;padding:10px;border-radius:8px;border:none;background:rgba(255,255,255,0.06);color:white}
-    textarea{min-height:80px;resize:vertical}
-    .btn{background:var(--accent);color:#222;padding:10px 14px;border:none;border-radius:8px;cursor:pointer;font-weight:700}
-    .btn-danger{background:var(--danger);color:white}
-    .hidden{display:none!important}
-    .info{font-size:13px;opacity:0.9;margin-top:8px}
+    /* subjects / reminders */
+    ul.plain { list-style:none; padding:0; margin:12px 0; }
+    li.item {
+      background:rgba(255,255,255,0.06);
+      border-radius:8px;
+      padding:10px 12px;
+      margin-bottom:8px;
+      display:flex; justify-content:space-between; align-items:flex-start;
+      gap:12px;
+    }
+    .subject-left { flex:1; display:flex; flex-direction:column; gap:6px; }
+    .subject-line { font-weight:600; font-size:15px; }
+    .subject-detail { font-size:14px; opacity:0.9; }
+    .images-row { display:flex; gap:8px; margin-top:6px; flex-wrap:wrap; }
+    .images-row img {
+      width:84px; height:64px; object-fit:cover;
+      border-radius:6px; cursor:pointer;
+    }
 
-    /* mobile spacing */
+    /* buttons / inputs */
+    input, textarea {
+      width:100%; padding:10px; margin-top:6px;
+      border:none; border-radius:8px;
+      background:rgba(255,255,255,0.08); color:#fff;
+    }
+    textarea { min-height:70px; resize:vertical; }
+    .btn {
+      background:var(--accent); color:#222;
+      border:none; border-radius:8px;
+      padding:8px 14px; font-weight:600; cursor:pointer;
+    }
+    .btn-danger { background:var(--danger); color:#fff; }
+    .hidden { display:none!important; }
+
+    /* responsive */
     @media(max-width:600px){
-      .row{flex-direction:column;align-items:stretch}
-      .images-row img{width:48%;height:100px}
+      .images-row img { width:48%; height:100px; }
     }
   </style>
 </head>
 <body>
-  <header><h1>📚 Classwork & To-Do Reminder</h1></header>
+  <header>
+    <h1>📚 Classwork & To-Do Reminder</h1>
+    <div style="margin-top:8px;">
+      <button class="btn" onclick="toggleLogin()">🔑 Admin Login</button>
+      <button class="btn btn-danger hidden" id="logoutBtn" onclick="logout()">Logout</button>
+    </div>
+  </header>
 
   <main class="container">
-    <!-- SUBJECTS -->
+    <!-- Subjects -->
     <section class="panel" id="subjectsPanel">
-      <div class="subjects-header">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
         <div>
           <div style="font-size:14px;opacity:0.9">SUBJECTS NEED TO DO</div>
           <div class="small">Shows status per subject</div>
         </div>
-        <div class="count-bubble" id="subjectsCount">[ 0 ]</div>
+        <div class="small" id="subjectsCount">0</div>
       </div>
-
-      <ul id="subjectsList" class="plain" aria-live="polite"></ul>
+      <ul id="subjectsList" class="plain"></ul>
     </section>
 
-    <!-- EXTRA / REMINDERS -->
+    <!-- Reminders -->
     <section class="panel" id="remindersPanel">
-      <div style="display:flex;justify-content:space-between;align-items:center">
-        <div>
-          <div style="font-size:14px;opacity:0.9">Extra Curricular / Things to do</div>
-          <div class="small">Examples: Bring a hat for the event tomorrow.</div>
-        </div>
-        <div id="adminButtons" class="hidden">
-          <button class="btn" onclick="toggleAdmin()">Admin Panel</button>
-          <button class="btn btn-danger" onclick="logout()" id="logoutBtn" style="display:none">Logout</button>
-        </div>
-      </div>
-
-      <ul id="remindersList" class="plain" aria-live="polite"></ul>
+      <div style="font-size:14px;opacity:0.9;margin-bottom:4px">EXTRA / REMINDERS</div>
+      <div class="small">Examples: Bring a hat for the event tomorrow.</div>
+      <ul id="remindersList" class="plain"></ul>
     </section>
 
-    <!-- LOGIN & ADMIN PANEL -->
-    <section class="panel" id="loginPanel">
+    <!-- Admin Login -->
+    <section class="panel hidden" id="loginPanel">
       <div id="loginForm">
         <div style="font-weight:600;margin-bottom:8px">🔑 Admin Login (only admin needs to login)</div>
-        <input id="email" type="email" placeholder="admin email" value="adminv2@gmail.com" />
-        <input id="password" type="text" placeholder="password" value="AccessUseV2" />
-        <div style="height:10px"></div>
-        <div class="row">
-          <div class="left"><button class="btn" id="loginBtn">Login as Admin</button></div>
-          <div class="right"><div id="loginStatus" class="small"></div></div>
-        </div>
-        <div class="info">After admin login you can add / delete / upload images.</div>
+        <input id="email" type="email" placeholder="admin email" />
+        <input id="password" type="password" placeholder="password" />
+        <button class="btn" id="loginBtn" style="margin-top:10px">Login as Admin</button>
+        <div class="small" id="loginStatus"></div>
       </div>
 
-      <div id="adminPanel" class="hidden" style="margin-top:14px">
+      <div id="adminPanel" class="hidden" style="margin-top:16px">
         <div style="font-weight:700;margin-bottom:8px">⚙️ Admin Panel</div>
 
-        <!-- ADD SUBJECT -->
+        <!-- Add Subject -->
         <form id="addSubjectForm">
-          <div style="font-weight:600">Add Subject Task</div>
           <input id="subjectName" type="text" placeholder="Subject e.g. SCIENCE" required />
-          <input id="subjectTask" type="text" placeholder="Task (Assignment / No / Worksheet)" required />
-          <input id="subjectDue" type="text" placeholder="Due (Tomorrow, Tuesday, Nextweek) — optional" />
+          <input id="subjectTask" type="text" placeholder="Task e.g. Assignment" required />
+          <input id="subjectDue" type="text" placeholder="Due (Tomorrow, Tuesday) optional" />
           <input id="subjectFiles" type="file" multiple accept="image/*" />
-          <div style="display:flex;gap:8px;margin-top:8px">
-            <button class="btn" type="submit">➕ Add Subject</button>
-            <button class="btn" type="button" onclick="refresh()">🔁 Refresh</button>
-          </div>
-          <div id="subjectFormMsg" class="info"></div>
+          <button class="btn" type="submit" style="margin-top:8px">➕ Add Subject</button>
+          <div class="small" id="subjectFormMsg"></div>
         </form>
 
-        <hr style="margin:16px 0;opacity:0.12" />
+        <hr style="margin:14px 0;opacity:0.2" />
 
-        <!-- ADD REMINDER -->
+        <!-- Add Reminder -->
         <form id="addReminderForm">
-          <div style="font-weight:600">Add Extra / Reminder</div>
-          <textarea id="reminderText" placeholder="Reminder text e.g. Bring a hat for the event tomorrow." required></textarea>
+          <textarea id="reminderText" placeholder="Reminder text..." required></textarea>
           <input id="reminderFiles" type="file" multiple accept="image/*" />
-          <div style="display:flex;gap:8px;margin-top:8px">
-            <button class="btn" type="submit">➕ Add Reminder</button>
-          </div>
-          <div id="reminderFormMsg" class="info"></div>
+          <button class="btn" type="submit" style="margin-top:8px">➕ Add Reminder</button>
+          <div class="small" id="reminderFormMsg"></div>
         </form>
       </div>
     </section>
 
-    <!-- DEBUG / CONSOLE -->
+    <!-- Debug -->
     <section class="panel" id="debugPanel">
-      <div style="font-weight:700">Debug / Status</div>
-      <pre id="debugLog" style="white-space:pre-wrap;max-height:200px;overflow:auto;font-size:12px;background:rgba(0,0,0,0.12);padding:10px;border-radius:8px;"></pre>
+      <div style="font-weight:600">Debug / Status</div>
+      <pre id="debugLog" style="white-space:pre-wrap;max-height:200px;overflow:auto;font-size:12px;"></pre>
     </section>
   </main>
 
   <script>
-  /* =========================
-     CONFIG — REPLACE THESE
-     ========================= */
-  const SUPABASE_URL = "https://mwosezbzzxjzpgxsdpdr.supabase.co"; // your project URL
-  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im13b3NlemJ6enhqenBneHNkcGRyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgwMjk5ODQsImV4cCI6MjA3MzYwNTk4NH0.LzE9RoKMx9zsMdqydL1vSNeUCNlpD2izQMNCrqiAeCk";          // your anon key (from Project Settings → API)
-  /* ========================= */
-
-  // create Supabase client (UMD)
+  // ================= CONFIG =================
+  const SUPABASE_URL = "https://mwosezbzzxjzpgxsdpdr.supabase.co";
+  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im13b3NlemJ6enhqenBneHNkcGRyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgwMjk5ODQsImV4cCI6MjA3MzYwNTk4NH0.LzE9RoKMx9zsMdqydL1vSNeUCNlpD2izQMNCrqiAeCk";
   const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-  // DOM refs
+  // DOM elements
   const subjectsList = document.getElementById('subjectsList');
   const remindersList = document.getElementById('remindersList');
   const subjectsCount = document.getElementById('subjectsCount');
+  const loginPanel = document.getElementById('loginPanel');
   const loginBtn = document.getElementById('loginBtn');
   const loginStatus = document.getElementById('loginStatus');
-  const adminButtons = document.getElementById('adminButtons');
   const adminPanel = document.getElementById('adminPanel');
   const logoutBtn = document.getElementById('logoutBtn');
-  const debugLog = document.getElementById('debugLog');
   const subjectFormMsg = document.getElementById('subjectFormMsg');
   const reminderFormMsg = document.getElementById('reminderFormMsg');
+  const debugLog = document.getElementById('debugLog');
 
-  let isAdmin = false; // set to true after successful login
+  let isAdmin = false;
 
-  // Utility: log to debug panel and console
-  function log(...args){
+  // log helper
+  function log(...args) {
     console.log(...args);
-    debugLog.textContent += args.map(a => (typeof a === 'object' ? JSON.stringify(a, null, 2) : String(a))).join(' ') + "\n";
+    debugLog.textContent += args.map(a => (typeof a === 'object' ? JSON.stringify(a,null,2) : a)).join(" ") + "\n";
     debugLog.scrollTop = debugLog.scrollHeight;
   }
 
-  // ---------- Load data & render ----------
-  async function loadData(){
-    try{
+  // toggle login panel
+  function toggleLogin() {
+    loginPanel.classList.toggle('hidden');
+  }
+
+  // ---------- Load data ----------
+  async function loadData() {
+    try {
       subjectsList.innerHTML = '';
       remindersList.innerHTML = '';
-      log("Loading subjects + reminders...");
+      log("Loading data...");
 
       // subjects
       const { data: subjects, error: sErr } = await supabase
-        .from('subjects')
-        .select('*')
-        .order('id', { ascending: true });
-
+        .from('subjects').select('*').order('id', { ascending:true });
       if (sErr) throw sErr;
-      // count how many subjects have work (task not 'No' and not empty)
-      const subjectsWithWork = (subjects || []).filter(s => s.task && s.task.toLowerCase() !== 'no').length;
-      subjectsCount.textContent = `[ ${subjectsWithWork} ] Subjects have work`;
 
-      // render each subject in required format
-      (subjects || []).forEach(s => {
+      subjectsCount.textContent = subjects.length;
+      subjects.forEach(s => {
         const li = document.createElement('li');
         li.className = 'item';
-        // left side text: "-SCIENCE [ Assignment | Tomorrow ]"
         const left = document.createElement('div');
         left.className = 'subject-left';
-        const titleLine = document.createElement('div');
-        titleLine.className = 'subject-line';
-        titleLine.textContent = `- ${s.name} [ ${s.task} | ${s.due || 'No'} ]`;
-        left.appendChild(titleLine);
 
-        // images thumbnails
-        if (Array.isArray(s.images) && s.images.length){
-          const imagesRow = document.createElement('div');
-          imagesRow.className = 'images-row';
-          s.images.forEach(url => {
+        const line = document.createElement('div');
+        line.className = 'subject-line';
+        line.textContent = `${s.name} [ ${s.task} | ${s.due || 'No'} ]`;
+        left.appendChild(line);
+
+        if (s.images && s.images.length) {
+          const imgRow = document.createElement('div');
+          imgRow.className = 'images-row';
+          s.images.forEach(url=>{
             const img = document.createElement('img');
             img.src = url;
-            img.alt = `${s.name} image`;
-            img.loading = 'lazy';
-            img.onclick = (ev) => window.open(url, '_blank');
-            imagesRow.appendChild(img);
+            img.onclick=()=>window.open(url,'_blank');
+            imgRow.appendChild(img);
           });
-          left.appendChild(imagesRow);
+          left.appendChild(imgRow);
         }
-
         li.appendChild(left);
 
-        // delete button if admin
-        if (isAdmin){
-          const btn = document.createElement('button');
-          btn.textContent = '❌';
-          btn.className = 'btn btn-danger';
-          btn.onclick = async (ev) => {
-            ev.stopPropagation();
-            if (!confirm('Delete this subject?')) return;
-            await deleteSubject(s.id);
-          };
-          li.appendChild(btn);
+        if (isAdmin) {
+          const del = document.createElement('button');
+          del.className = 'btn btn-danger';
+          del.textContent = "❌";
+          del.onclick=()=>deleteSubject(s.id);
+          li.appendChild(del);
         }
-
         subjectsList.appendChild(li);
       });
 
       // reminders
       const { data: reminders, error: rErr } = await supabase
-        .from('reminders')
-        .select('*')
-        .order('id', { ascending: true });
+        .from('reminders').select('*').order('id', { ascending:true });
       if (rErr) throw rErr;
 
-      (reminders || []).forEach(r => {
+      reminders.forEach(r => {
         const li = document.createElement('li');
         li.className = 'item';
         const left = document.createElement('div');
         left.className = 'subject-left';
+        const line = document.createElement('div');
+        line.className = 'subject-line';
+        line.textContent = r.text;
+        left.appendChild(line);
 
-        const textLine = document.createElement('div');
-        textLine.className = 'subject-line';
-        textLine.textContent = `- ${r.text}`;
-        left.appendChild(textLine);
-
-        if (Array.isArray(r.images) && r.images.length){
-          const imagesRow = document.createElement('div');
-          imagesRow.className = 'images-row';
-          r.images.forEach(url => {
+        if (r.images && r.images.length) {
+          const imgRow = document.createElement('div');
+          imgRow.className = 'images-row';
+          r.images.forEach(url=>{
             const img = document.createElement('img');
-            img.src = url;
-            img.alt = 'reminder image';
-            img.loading = 'lazy';
-            img.onclick = () => window.open(url, '_blank');
-            imagesRow.appendChild(img);
+            img.src=url; img.onclick=()=>window.open(url,'_blank');
+            imgRow.appendChild(img);
           });
-          left.appendChild(imagesRow);
+          left.appendChild(imgRow);
         }
-
         li.appendChild(left);
 
-        if (isAdmin){
-          const btn = document.createElement('button');
-          btn.textContent = '❌';
-          btn.className = 'btn btn-danger';
-          btn.onclick = async (ev) => {
-            ev.stopPropagation();
-            if (!confirm('Delete this reminder?')) return;
-            await deleteReminder(r.id);
-          };
-          li.appendChild(btn);
+        if (isAdmin) {
+          const del = document.createElement('button');
+          del.className='btn btn-danger';
+          del.textContent="❌";
+          del.onclick=()=>deleteReminder(r.id);
+          li.appendChild(del);
         }
-
         remindersList.appendChild(li);
       });
-
-      log("Render complete.");
-    }catch(err){
+    } catch (err) {
       log("loadData error:", err.message || err);
-      alert("Error loading data — see debug log (bottom) for details.");
     }
-  } // loadData
+  }
 
-  // ---------- Upload files helper ----------
-  async function uploadFiles(files){
-    // returns an array of public URLs (or empty array)
-    const urls = [];
-    if (!files || files.length === 0) return urls;
-    for (const file of Array.from(files)){
-      try{
-        const filePath = `uploads/${Date.now()}-${Math.random().toString(36).slice(2,9)}-${file.name}`;
-        log("Uploading:", file.name, "->", filePath);
-        const { data, error } = await supabase.storage.from('uploads').upload(filePath, file);
-        if (error){
-          // if file exists, you might want to get publicUrl for the existing path — log and continue
-          log("Upload error for", file.name, error.message || error);
-          throw error;
-        }
-        // get public URL
-        const { data: pubData } = await supabase.storage.from('uploads').getPublicUrl(data.path);
-        if (pubData && pubData.publicUrl){
-          urls.push(pubData.publicUrl);
-          log("Uploaded and public:", pubData.publicUrl);
-        } else {
-          log("Warning: no publicUrl returned for", data.path);
-        }
-      }catch(err){
-        log("uploadFiles error:", err.message || err);
-        // continue to next file rather than aborting all uploads
-      }
+  // ---------- Upload files ----------
+  async function uploadFiles(files) {
+    const urls=[];
+    for (const file of files) {
+      const path=`uploads/${Date.now()}-${file.name}`;
+      const { data, error } = await supabase.storage.from('uploads').upload(path, file);
+      if (error) { log("Upload error", error); continue; }
+      const { data:pub } = await supabase.storage.from('uploads').getPublicUrl(data.path);
+      urls.push(pub.publicUrl);
     }
     return urls;
   }
 
-  // ---------- Add subject (admin) ----------
-  document.getElementById('addSubjectForm').addEventListener('submit', async function(e){
+  // ---------- Add subject ----------
+  document.getElementById('addSubjectForm').addEventListener('submit', async e=>{
     e.preventDefault();
-    if (!isAdmin) return alert('Admin only');
-    subjectFormMsg.textContent = "Working... uploading images if any";
-    try {
-      const name = document.getElementById('subjectName').value.trim();
-      const task = document.getElementById('subjectTask').value.trim() || 'No';
-      const due = document.getElementById('subjectDue').value.trim() || 'No';
-      const files = document.getElementById('subjectFiles').files;
-      const urls = await uploadFiles(files);
-      // insert into DB
-      const { data, error } = await supabase.from('subjects').insert([{ name, task, due, images: urls }]);
-      if (error) throw error;
-      subjectFormMsg.textContent = "Added subject!";
-      document.getElementById('addSubjectForm').reset();
-      await loadData();
-    } catch (err) {
-      log("addSubject error:", err.message || err);
-      subjectFormMsg.textContent = "Error: " + (err.message || JSON.stringify(err));
-    }
+    const name=document.getElementById('subjectName').value;
+    const task=document.getElementById('subjectTask').value;
+    const due=document.getElementById('subjectDue').value;
+    const files=document.getElementById('subjectFiles').files;
+    const urls=await uploadFiles(files);
+    const { error } = await supabase.from('subjects').insert([{ name, task, due, images:urls }]);
+    subjectFormMsg.textContent= error? "Error: "+error.message:"Added!";
+    await loadData();
+    e.target.reset();
   });
 
   // ---------- Add reminder ----------
-  document.getElementById('addReminderForm').addEventListener('submit', async function(e){
+  document.getElementById('addReminderForm').addEventListener('submit', async e=>{
     e.preventDefault();
-    if (!isAdmin) return alert('Admin only');
-    reminderFormMsg.textContent = "Working... uploading images if any";
-    try{
-      const text = document.getElementById('reminderText').value.trim();
-      const files = document.getElementById('reminderFiles').files;
-      const urls = await uploadFiles(files);
-      const { data, error } = await supabase.from('reminders').insert([{ text, images: urls }]);
-      if (error) throw error;
-      reminderFormMsg.textContent = "Added reminder!";
-      document.getElementById('addReminderForm').reset();
-      await loadData();
-    }catch(err){
-      log("addReminder error:", err.message || err);
-      reminderFormMsg.textContent = "Error: " + (err.message || JSON.stringify(err));
-    }
+    const text=document.getElementById('reminderText').value;
+    const files=document.getElementById('reminderFiles').files;
+    const urls=await uploadFiles(files);
+    const { error } = await supabase.from('reminders').insert([{ text, images:urls }]);
+    reminderFormMsg.textContent= error? "Error: "+error.message:"Added!";
+    await loadData();
+    e.target.reset();
   });
 
-  // ---------- Delete helpers ----------
+  // ---------- Delete ----------
   async function deleteSubject(id){
-    try{
-      const { error } = await supabase.from('subjects').delete().eq('id', id);
-      if (error) throw error;
-      await loadData();
-    }catch(err){
-      log('deleteSubject error:', err);
-      alert('Delete error — check debug log');
-    }
+    await supabase.from('subjects').delete().eq('id',id);
+    loadData();
   }
-
   async function deleteReminder(id){
-    try{
-      const { error } = await supabase.from('reminders').delete().eq('id', id);
-      if (error) throw error;
-      await loadData();
-    }catch(err){
-      log('deleteReminder error:', err);
-      alert('Delete error — check debug log');
-    }
+    await supabase.from('reminders').delete().eq('id',id);
+    loadData();
   }
 
-  // ---------- Login / Logout ----------
-  loginBtn.addEventListener('click', async () => {
-    loginStatus.textContent = "Logging in...";
-    const email = document.getElementById('email').value;
-    const password = document.getElementById('password').value;
-    try{
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error){
-        loginStatus.textContent = "Login failed: " + (error.message || JSON.stringify(error));
-        log("login error:", error);
-        return;
-      }
-      // success
-      isAdmin = true;
-      adminButtons.classList.remove('hidden');
-      adminPanel.classList.remove('hidden');
-      document.getElementById('loginForm').style.display = 'none';
-      logoutBtn.style.display = 'inline-block';
-      loginStatus.textContent = "Logged in as admin";
-      log("Logged in user:", data.user);
-      await loadData();
-    }catch(err){
-      loginStatus.textContent = "Login error";
-      log("login exception:", err.message || err);
-    }
+  // ---------- Auth ----------
+  loginBtn.addEventListener('click', async ()=>{
+    loginStatus.textContent="Logging in...";
+    const email=document.getElementById('email').value;
+    const password=document.getElementById('password').value;
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error){ loginStatus.textContent="Error: "+error.message; return; }
+    isAdmin=true;
+    adminPanel.classList.remove('hidden');
+    logoutBtn.classList.remove('hidden');
+    loginStatus.textContent="Logged in!";
+    loadData();
   });
 
   async function logout(){
     await supabase.auth.signOut();
-    isAdmin = false;
-    adminButtons.classList.add('hidden');
+    isAdmin=false;
     adminPanel.classList.add('hidden');
-    document.getElementById('loginForm').style.display = 'block';
-    logoutBtn.style.display = 'none';
-    loginStatus.textContent = "Logged out";
-    await loadData();
+    logoutBtn.classList.add('hidden');
+    loginPanel.classList.add('hidden');
+    loadData();
   }
 
-  // toggle admin (button)
-  function toggleAdmin(){
-    if (!isAdmin){
-      alert('Please login as admin first (use the login form).');
-      return;
-    }
-    adminPanel.classList.toggle('hidden');
-  }
-
-  // refresh helper
-  function refresh(){ loadData(); }
-
-  // initial load
-  (async ()=>{ await loadData(); })();
-
+  // initial
+  loadData();
   </script>
 </body>
 </html>
