@@ -1,232 +1,456 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Reminders App</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Classwork & To-Do Reminder</title>
+  <!-- UI font -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+  <!-- Supabase v2 UMD -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+
   <style>
-    body {
-      margin: 0;
-      font-family: 'Poppins', sans-serif;
-      background: linear-gradient(135deg, #f7f7f7, #eaeaea);
-      color: #333;
+    :root{
+      --bg1:#6a11cb; --bg2:#2575fc; --card: rgba(255,255,255,0.12);
+      --accent:#ffd166; --danger:#ff6961;
     }
-
-    header {
-      background: #4f46e5;
-      color: white;
-      padding: 1rem;
-      text-align: center;
-      font-weight: 700;
-      font-size: 1.5rem;
+    *{box-sizing:border-box}
+    body{
+      margin:0; font-family:'Poppins',sans-serif;
+      background: linear-gradient(135deg,var(--bg1),var(--bg2));
+      color:#fff; min-height:100vh; padding:20px;
+      display:flex; flex-direction:column; align-items:center;
     }
+    header{width:100%; max-width:1100px; text-align:center; margin-bottom:18px}
+    header h1{margin:0; font-size:22px; font-weight:600}
+    .container{width:100%; max-width:900px;}
 
-    #auth, #app {
-      max-width: 800px;
-      margin: 2rem auto;
-      padding: 1.5rem;
-      background: white;
-      border-radius: 12px;
-      box-shadow: 0 6px 16px rgba(0,0,0,0.1);
+    .panel{background:var(--card); border-radius:12px; padding:16px; margin-bottom:14px; box-shadow: 0 6px 18px rgba(0,0,0,0.15)}
+    .row{display:flex;gap:12px;align-items:center}
+    .left{flex:1}
+    .right{flex:0 0 auto}
+    .small{font-size:13px;opacity:0.9}
+
+    /* subjects list style to match your required text output */
+    .subjects-header{display:flex;align-items:center;gap:12px}
+    .count-bubble{background:rgba(255,255,255,0.12);padding:6px 10px;border-radius:12px;font-weight:600}
+
+    ul.plain{list-style:none;padding-left:0;margin:12px 0}
+    li.item{
+      padding:8px 10px;border-radius:8px;background:rgba(255,255,255,0.06);
+      margin-bottom:6px;display:flex;align-items:center;justify-content:space-between;
+      gap:12px;font-size:15px;
     }
+    .subject-left{display:flex;flex-direction:column;gap:6px}
+    .subject-line{font-weight:600}
+    .subject-detail{font-size:14px;opacity:0.92}
 
-    h2 {
-      margin-top: 0;
-      font-weight: 600;
-      color: #4f46e5;
-    }
+    .images-row{display:flex;gap:8px;margin-top:8px}
+    .images-row img{width:84px;height:64px;object-fit:cover;border-radius:6px;border:1px solid rgba(255,255,255,0.06)}
 
-    input, textarea, button {
-      width: 100%;
-      padding: 0.7rem;
-      margin: 0.5rem 0;
-      border-radius: 8px;
-      border: 1px solid #ccc;
-      font-size: 1rem;
-    }
+    /* admin form */
+    input[type=text], input[type=email], input[type=date], textarea, input[type=file]{width:100%;padding:10px;border-radius:8px;border:none;background:rgba(255,255,255,0.06);color:white}
+    textarea{min-height:80px;resize:vertical}
+    .btn{background:var(--accent);color:#222;padding:10px 14px;border:none;border-radius:8px;cursor:pointer;font-weight:700}
+    .btn-danger{background:var(--danger);color:white}
+    .hidden{display:none!important}
+    .info{font-size:13px;opacity:0.9;margin-top:8px}
 
-    button {
-      cursor: pointer;
-      background: #4f46e5;
-      color: white;
-      border: none;
-      transition: background 0.2s;
-    }
-
-    button:hover {
-      background: #4338ca;
-    }
-
-    .reminder {
-      background: #fafafa;
-      border: 1px solid #ddd;
-      border-radius: 10px;
-      padding: 1rem;
-      margin: 1rem 0;
-    }
-
-    .reminder h3 {
-      margin: 0 0 0.5rem 0;
-      color: #111;
-    }
-
-    .images {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      margin-top: 0.5rem;
-    }
-
-    .images img {
-      width: 120px;
-      height: 90px;
-      object-fit: cover;
-      border-radius: 8px;
-    }
-
-    .delete-btn {
-      margin-top: 0.5rem;
-      background: crimson;
-      display: none; /* hidden by default */
-    }
-
-    .delete-btn:hover {
-      background: darkred;
-    }
-
-    #logout {
-      background: #dc2626;
-      margin-top: 1rem;
+    /* mobile spacing */
+    @media(max-width:600px){
+      .row{flex-direction:column;align-items:stretch}
+      .images-row img{width:48%;height:100px}
     }
   </style>
 </head>
 <body>
-  <header>📌 Reminders App</header>
+  <header><h1>📚 Classwork & To-Do Reminder</h1></header>
 
-  <!-- AUTH FORM -->
-  <div id="auth">
-    <h2>Login</h2>
-    <input type="email" id="email" placeholder="Email"/>
-    <input type="password" id="password" placeholder="Password"/>
-    <button id="loginBtn">Login</button>
-  </div>
+  <main class="container">
+    <!-- SUBJECTS -->
+    <section class="panel" id="subjectsPanel">
+      <div class="subjects-header">
+        <div>
+          <div style="font-size:14px;opacity:0.9">SUBJECTS NEED TO DO</div>
+          <div class="small">Shows status per subject</div>
+        </div>
+        <div class="count-bubble" id="subjectsCount">[ 0 ]</div>
+      </div>
 
-  <!-- APP CONTENT -->
-  <div id="app" style="display:none;">
-    <h2>Add Reminder</h2>
-    <input id="title" placeholder="Title"/>
-    <textarea id="desc" placeholder="Description"></textarea>
-    <input type="date" id="due"/>
-    <input type="file" id="images" multiple/>
-    <button id="addBtn">Add Reminder</button>
+      <ul id="subjectsList" class="plain" aria-live="polite"></ul>
+    </section>
 
-    <h2>Reminders</h2>
-    <div id="reminders"></div>
+    <!-- EXTRA / REMINDERS -->
+    <section class="panel" id="remindersPanel">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div style="font-size:14px;opacity:0.9">Extra Curricular / Things to do</div>
+          <div class="small">Examples: Bring a hat for the event tomorrow.</div>
+        </div>
+        <div id="adminButtons" class="hidden">
+          <button class="btn" onclick="toggleAdmin()">Admin Panel</button>
+          <button class="btn btn-danger" onclick="logout()" id="logoutBtn" style="display:none">Logout</button>
+        </div>
+      </div>
 
-    <button id="logout">Logout</button>
-  </div>
+      <ul id="remindersList" class="plain" aria-live="polite"></ul>
+    </section>
+
+    <!-- LOGIN & ADMIN PANEL -->
+    <section class="panel" id="loginPanel">
+      <div id="loginForm">
+        <div style="font-weight:600;margin-bottom:8px">🔑 Admin Login (only admin needs to login)</div>
+        <input id="email" type="email" placeholder="admin email" value="adminv2@gmail.com" />
+        <input id="password" type="text" placeholder="password" value="AccessUseV2" />
+        <div style="height:10px"></div>
+        <div class="row">
+          <div class="left"><button class="btn" id="loginBtn">Login as Admin</button></div>
+          <div class="right"><div id="loginStatus" class="small"></div></div>
+        </div>
+        <div class="info">After admin login you can add / delete / upload images.</div>
+      </div>
+
+      <div id="adminPanel" class="hidden" style="margin-top:14px">
+        <div style="font-weight:700;margin-bottom:8px">⚙️ Admin Panel</div>
+
+        <!-- ADD SUBJECT -->
+        <form id="addSubjectForm">
+          <div style="font-weight:600">Add Subject Task</div>
+          <input id="subjectName" type="text" placeholder="Subject e.g. SCIENCE" required />
+          <input id="subjectTask" type="text" placeholder="Task (Assignment / No / Worksheet)" required />
+          <input id="subjectDue" type="text" placeholder="Due (Tomorrow, Tuesday, Nextweek) — optional" />
+          <input id="subjectFiles" type="file" multiple accept="image/*" />
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <button class="btn" type="submit">➕ Add Subject</button>
+            <button class="btn" type="button" onclick="refresh()">🔁 Refresh</button>
+          </div>
+          <div id="subjectFormMsg" class="info"></div>
+        </form>
+
+        <hr style="margin:16px 0;opacity:0.12" />
+
+        <!-- ADD REMINDER -->
+        <form id="addReminderForm">
+          <div style="font-weight:600">Add Extra / Reminder</div>
+          <textarea id="reminderText" placeholder="Reminder text e.g. Bring a hat for the event tomorrow." required></textarea>
+          <input id="reminderFiles" type="file" multiple accept="image/*" />
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <button class="btn" type="submit">➕ Add Reminder</button>
+          </div>
+          <div id="reminderFormMsg" class="info"></div>
+        </form>
+      </div>
+    </section>
+
+    <!-- DEBUG / CONSOLE -->
+    <section class="panel" id="debugPanel">
+      <div style="font-weight:700">Debug / Status</div>
+      <pre id="debugLog" style="white-space:pre-wrap;max-height:200px;overflow:auto;font-size:12px;background:rgba(0,0,0,0.12);padding:10px;border-radius:8px;"></pre>
+    </section>
+  </main>
 
   <script>
-    const supabaseUrl = "https://znelvfrvzmrqaubclner.supabase.co";
-    const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpuZWx2ZnJ2em1ycWF1YmNsbmVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgwMjU5MDUsImV4cCI6MjA3MzYwMTkwNX0.1xEhYkBN5HEWiq9DfJ-6V4ngXNHPJvL3SnI2kNL3-ZU";
-    const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+  /* =========================
+     CONFIG — REPLACE THESE
+     ========================= */
+  const SUPABASE_URL = "https://prhjibexjzdiineekmmi.supabase.co"; // your project URL
+  const SUPABASE_ANON_KEY = "REPLACE_WITH_YOUR_ANON_KEY";          // your anon key (from Project Settings → API)
+  /* ========================= */
 
-    const authDiv = document.getElementById("auth");
-    const appDiv = document.getElementById("app");
-    const loginBtn = document.getElementById("loginBtn");
-    const logoutBtn = document.getElementById("logout");
-    const addBtn = document.getElementById("addBtn");
-    const remindersDiv = document.getElementById("reminders");
+  // create Supabase client (UMD)
+  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    let currentUser = null;
-    let isAdmin = false; // toggle based on your auth rules
+  // DOM refs
+  const subjectsList = document.getElementById('subjectsList');
+  const remindersList = document.getElementById('remindersList');
+  const subjectsCount = document.getElementById('subjectsCount');
+  const loginBtn = document.getElementById('loginBtn');
+  const loginStatus = document.getElementById('loginStatus');
+  const adminButtons = document.getElementById('adminButtons');
+  const adminPanel = document.getElementById('adminPanel');
+  const logoutBtn = document.getElementById('logoutBtn');
+  const debugLog = document.getElementById('debugLog');
+  const subjectFormMsg = document.getElementById('subjectFormMsg');
+  const reminderFormMsg = document.getElementById('reminderFormMsg');
 
-    // --- LOGIN ---
-    loginBtn.onclick = async () => {
-      const email = document.getElementById("email").value;
-      const password = document.getElementById("password").value;
+  let isAdmin = false; // set to true after successful login
 
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) {
-        alert(error.message);
-      } else {
-        currentUser = data.user;
-        authDiv.style.display = "none";
-        appDiv.style.display = "block";
-        checkAdmin();
-        loadReminders();
-      }
-    };
+  // Utility: log to debug panel and console
+  function log(...args){
+    console.log(...args);
+    debugLog.textContent += args.map(a => (typeof a === 'object' ? JSON.stringify(a, null, 2) : String(a))).join(' ') + "\n";
+    debugLog.scrollTop = debugLog.scrollHeight;
+  }
 
-    // --- LOGOUT ---
-    logoutBtn.onclick = async () => {
-      await supabase.auth.signOut();
-      location.reload();
-    };
+  // ---------- Load data & render ----------
+  async function loadData(){
+    try{
+      subjectsList.innerHTML = '';
+      remindersList.innerHTML = '';
+      log("Loading subjects + reminders...");
 
-    // --- CHECK ADMIN ---
-    async function checkAdmin() {
-      // Simplified: mark first user as admin
-      if (currentUser && currentUser.email.includes("admin")) {
-        isAdmin = true;
+      // subjects
+      const { data: subjects, error: sErr } = await supabase
+        .from('subjects')
+        .select('*')
+        .order('id', { ascending: true });
+
+      if (sErr) throw sErr;
+      // count how many subjects have work (task not 'No' and not empty)
+      const subjectsWithWork = (subjects || []).filter(s => s.task && s.task.toLowerCase() !== 'no').length;
+      subjectsCount.textContent = `[ ${subjectsWithWork} ] Subjects have work`;
+
+      // render each subject in required format
+      (subjects || []).forEach(s => {
+        const li = document.createElement('li');
+        li.className = 'item';
+        // left side text: "-SCIENCE [ Assignment | Tomorrow ]"
+        const left = document.createElement('div');
+        left.className = 'subject-left';
+        const titleLine = document.createElement('div');
+        titleLine.className = 'subject-line';
+        titleLine.textContent = `- ${s.name} [ ${s.task} | ${s.due || 'No'} ]`;
+        left.appendChild(titleLine);
+
+        // images thumbnails
+        if (Array.isArray(s.images) && s.images.length){
+          const imagesRow = document.createElement('div');
+          imagesRow.className = 'images-row';
+          s.images.forEach(url => {
+            const img = document.createElement('img');
+            img.src = url;
+            img.alt = `${s.name} image`;
+            img.loading = 'lazy';
+            img.onclick = (ev) => window.open(url, '_blank');
+            imagesRow.appendChild(img);
+          });
+          left.appendChild(imagesRow);
+        }
+
+        li.appendChild(left);
+
+        // delete button if admin
+        if (isAdmin){
+          const btn = document.createElement('button');
+          btn.textContent = '❌';
+          btn.className = 'btn btn-danger';
+          btn.onclick = async (ev) => {
+            ev.stopPropagation();
+            if (!confirm('Delete this subject?')) return;
+            await deleteSubject(s.id);
+          };
+          li.appendChild(btn);
+        }
+
+        subjectsList.appendChild(li);
+      });
+
+      // reminders
+      const { data: reminders, error: rErr } = await supabase
+        .from('reminders')
+        .select('*')
+        .order('id', { ascending: true });
+      if (rErr) throw rErr;
+
+      (reminders || []).forEach(r => {
+        const li = document.createElement('li');
+        li.className = 'item';
+        const left = document.createElement('div');
+        left.className = 'subject-left';
+
+        const textLine = document.createElement('div');
+        textLine.className = 'subject-line';
+        textLine.textContent = `- ${r.text}`;
+        left.appendChild(textLine);
+
+        if (Array.isArray(r.images) && r.images.length){
+          const imagesRow = document.createElement('div');
+          imagesRow.className = 'images-row';
+          r.images.forEach(url => {
+            const img = document.createElement('img');
+            img.src = url;
+            img.alt = 'reminder image';
+            img.loading = 'lazy';
+            img.onclick = () => window.open(url, '_blank');
+            imagesRow.appendChild(img);
+          });
+          left.appendChild(imagesRow);
+        }
+
+        li.appendChild(left);
+
+        if (isAdmin){
+          const btn = document.createElement('button');
+          btn.textContent = '❌';
+          btn.className = 'btn btn-danger';
+          btn.onclick = async (ev) => {
+            ev.stopPropagation();
+            if (!confirm('Delete this reminder?')) return;
+            await deleteReminder(r.id);
+          };
+          li.appendChild(btn);
+        }
+
+        remindersList.appendChild(li);
+      });
+
+      log("Render complete.");
+    }catch(err){
+      log("loadData error:", err.message || err);
+      alert("Error loading data — see debug log (bottom) for details.");
+    }
+  } // loadData
+
+  // ---------- Upload files helper ----------
+  async function uploadFiles(files){
+    // returns an array of public URLs (or empty array)
+    const urls = [];
+    if (!files || files.length === 0) return urls;
+    for (const file of Array.from(files)){
+      try{
+        const filePath = `uploads/${Date.now()}-${Math.random().toString(36).slice(2,9)}-${file.name}`;
+        log("Uploading:", file.name, "->", filePath);
+        const { data, error } = await supabase.storage.from('uploads').upload(filePath, file);
+        if (error){
+          // if file exists, you might want to get publicUrl for the existing path — log and continue
+          log("Upload error for", file.name, error.message || error);
+          throw error;
+        }
+        // get public URL
+        const { data: pubData } = await supabase.storage.from('uploads').getPublicUrl(data.path);
+        if (pubData && pubData.publicUrl){
+          urls.push(pubData.publicUrl);
+          log("Uploaded and public:", pubData.publicUrl);
+        } else {
+          log("Warning: no publicUrl returned for", data.path);
+        }
+      }catch(err){
+        log("uploadFiles error:", err.message || err);
+        // continue to next file rather than aborting all uploads
       }
     }
+    return urls;
+  }
 
-    // --- LOAD REMINDERS ---
-    async function loadReminders() {
-      remindersDiv.innerHTML = "";
-      const { data, error } = await supabase.from("reminders").select("*").order("id", { ascending: false });
-      if (error) {
-        console.error(error);
+  // ---------- Add subject (admin) ----------
+  document.getElementById('addSubjectForm').addEventListener('submit', async function(e){
+    e.preventDefault();
+    if (!isAdmin) return alert('Admin only');
+    subjectFormMsg.textContent = "Working... uploading images if any";
+    try {
+      const name = document.getElementById('subjectName').value.trim();
+      const task = document.getElementById('subjectTask').value.trim() || 'No';
+      const due = document.getElementById('subjectDue').value.trim() || 'No';
+      const files = document.getElementById('subjectFiles').files;
+      const urls = await uploadFiles(files);
+      // insert into DB
+      const { data, error } = await supabase.from('subjects').insert([{ name, task, due, images: urls }]);
+      if (error) throw error;
+      subjectFormMsg.textContent = "Added subject!";
+      document.getElementById('addSubjectForm').reset();
+      await loadData();
+    } catch (err) {
+      log("addSubject error:", err.message || err);
+      subjectFormMsg.textContent = "Error: " + (err.message || JSON.stringify(err));
+    }
+  });
+
+  // ---------- Add reminder ----------
+  document.getElementById('addReminderForm').addEventListener('submit', async function(e){
+    e.preventDefault();
+    if (!isAdmin) return alert('Admin only');
+    reminderFormMsg.textContent = "Working... uploading images if any";
+    try{
+      const text = document.getElementById('reminderText').value.trim();
+      const files = document.getElementById('reminderFiles').files;
+      const urls = await uploadFiles(files);
+      const { data, error } = await supabase.from('reminders').insert([{ text, images: urls }]);
+      if (error) throw error;
+      reminderFormMsg.textContent = "Added reminder!";
+      document.getElementById('addReminderForm').reset();
+      await loadData();
+    }catch(err){
+      log("addReminder error:", err.message || err);
+      reminderFormMsg.textContent = "Error: " + (err.message || JSON.stringify(err));
+    }
+  });
+
+  // ---------- Delete helpers ----------
+  async function deleteSubject(id){
+    try{
+      const { error } = await supabase.from('subjects').delete().eq('id', id);
+      if (error) throw error;
+      await loadData();
+    }catch(err){
+      log('deleteSubject error:', err);
+      alert('Delete error — check debug log');
+    }
+  }
+
+  async function deleteReminder(id){
+    try{
+      const { error } = await supabase.from('reminders').delete().eq('id', id);
+      if (error) throw error;
+      await loadData();
+    }catch(err){
+      log('deleteReminder error:', err);
+      alert('Delete error — check debug log');
+    }
+  }
+
+  // ---------- Login / Logout ----------
+  loginBtn.addEventListener('click', async () => {
+    loginStatus.textContent = "Logging in...";
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+    try{
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error){
+        loginStatus.textContent = "Login failed: " + (error.message || JSON.stringify(error));
+        log("login error:", error);
         return;
       }
-      data.forEach(rem => {
-        const div = document.createElement("div");
-        div.className = "reminder";
-        div.innerHTML = `
-          <h3>${rem.title}</h3>
-          <p>${rem.desc || ""}</p>
-          <p>📅 ${rem.due || "No deadline"}</p>
-          <div class="images">
-            ${rem.images ? rem.images.map(url => `<img src="${url}">`).join("") : ""}
-          </div>
-        `;
-        const delBtn = document.createElement("button");
-        delBtn.className = "delete-btn";
-        delBtn.innerText = "Delete";
-        delBtn.onclick = async () => {
-          await supabase.from("reminders").delete().eq("id", rem.id);
-          loadReminders();
-        };
-        if (isAdmin) delBtn.style.display = "block";
-        div.appendChild(delBtn);
-        remindersDiv.appendChild(div);
-      });
+      // success
+      isAdmin = true;
+      adminButtons.classList.remove('hidden');
+      adminPanel.classList.remove('hidden');
+      document.getElementById('loginForm').style.display = 'none';
+      logoutBtn.style.display = 'inline-block';
+      loginStatus.textContent = "Logged in as admin";
+      log("Logged in user:", data.user);
+      await loadData();
+    }catch(err){
+      loginStatus.textContent = "Login error";
+      log("login exception:", err.message || err);
     }
+  });
 
-    // --- ADD REMINDER ---
-    addBtn.onclick = async () => {
-      const title = document.getElementById("title").value;
-      const desc = document.getElementById("desc").value;
-      const due = document.getElementById("due").value;
-      const files = document.getElementById("images").files;
+  async function logout(){
+    await supabase.auth.signOut();
+    isAdmin = false;
+    adminButtons.classList.add('hidden');
+    adminPanel.classList.add('hidden');
+    document.getElementById('loginForm').style.display = 'block';
+    logoutBtn.style.display = 'none';
+    loginStatus.textContent = "Logged out";
+    await loadData();
+  }
 
-      let imageUrls = [];
-      for (let f of files) {
-        const filePath = `${Date.now()}-${f.name}`;
-        const { data, error } = await supabase.storage.from("uploads").upload(filePath, f);
-        if (error) {
-          console.error(error);
-        } else {
-          const { data: { publicUrl } } = supabase.storage.from("uploads").getPublicUrl(filePath);
-          imageUrls.push(publicUrl);
-        }
-      }
+  // toggle admin (button)
+  function toggleAdmin(){
+    if (!isAdmin){
+      alert('Please login as admin first (use the login form).');
+      return;
+    }
+    adminPanel.classList.toggle('hidden');
+  }
 
-      await supabase.from("reminders").insert([{ title, desc, due, images: imageUrls }]);
-      loadReminders();
-    };
+  // refresh helper
+  function refresh(){ loadData(); }
+
+  // initial load
+  (async ()=>{ await loadData(); })();
+
   </script>
 </body>
 </html>
