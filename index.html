@@ -11,6 +11,10 @@
   <!-- Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 
+  <!-- ZIP + Save for “Download All” -->
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+
   <style>
     /************************************************************
     * Root theme variables
@@ -131,6 +135,7 @@
     .subject-line { 
       font-weight:600; 
       font-size:15px; 
+      padding-right:96px; /* space for buttons */
     }
 
     /************************************************************
@@ -150,7 +155,7 @@
     }
 
     /************************************************************
-    * Expanded images row (with download)
+    * Expanded images row
     ************************************************************/
     .images-row { 
       display:none; 
@@ -172,18 +177,6 @@
     }
     .images-row img:hover { 
       transform:scale(1.05); 
-    }
-    .download-btn {
-      position:absolute; 
-      bottom:4px; 
-      right:4px;
-      background:rgba(0,0,0,0.6); 
-      color:#fff; 
-      border:none;
-      font-size:12px; 
-      padding:2px 6px; 
-      border-radius:4px; 
-      cursor:pointer;
     }
 
     /************************************************************
@@ -208,6 +201,20 @@
       position:absolute; 
       right:8px; 
       top:8px; 
+    }
+
+    /* New: Download-all button */
+    .btn-download-all { 
+      background:rgba(0,0,0,0.6); 
+      color:#fff; 
+      font-size:12px; 
+      padding:4px 8px; 
+      border-radius:6px; 
+      position:absolute; 
+      right:44px; 
+      top:8px;
+      border:none;
+      cursor:pointer;
     }
 
     /************************************************************
@@ -379,7 +386,9 @@
     const SUPABASE_URL = "https://mwosezbzzxjzpgxsdpdr.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im13b3NlemJ6enhqenBneHNkcGRyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgwMjk5ODQsImV4cCI6MjA3MzYwNTk4NH0.LzE9RoKMx9zsMdqydL1vSNeUCNlpD2izQMNCrqiAeCk";
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    const STORAGE_BUCKET = "uploads"; // make sure this public bucket exists
+
+    // Use your existing public bucket
+    const STORAGE_BUCKET = "uploads"; 
 
     /************************************************************
     * DOM References
@@ -427,7 +436,7 @@
     // simple uid for file paths
     const uid = () => Math.random().toString(36).slice(2) + Date.now();
 
-    // upload helper -> returns array of public URLs
+    // upload helper -> returns array of public URLs (no compression)
     async function uploadFilesReturnUrls(inputEl, subfolder) {
       const files = Array.from(inputEl?.files || []);
       if (!files.length) return [];
@@ -442,6 +451,37 @@
         urls.push(data.publicUrl);
       }
       return urls;
+    }
+
+    // CORS-safe fetch → Blob (for forced download)
+    async function fetchAsBlob(url) {
+      const res = await fetch(url, { mode: 'cors' });
+      if (!res.ok) throw new Error(`Fetch failed: ${res.status}`);
+      return await res.blob();
+    }
+
+    // Download All (ZIP if multiple, direct save if single)
+    async function downloadAll(label, urls) {
+      if (!urls || !urls.length) return;
+      // Single image → save directly (prevents opening new tab)
+      if (urls.length === 1) {
+        const blob = await fetchAsBlob(urls[0]);
+        const ext = (urls[0].split('.').pop() || 'jpg').split('?')[0];
+        saveAs(blob, `${(label||'image').replace(/[^a-z0-9-_]/gi,'_')}.${ext}`);
+        return;
+      }
+      // Multiple → ZIP
+      const zip = new JSZip();
+      const folder = zip.folder((label || 'images').replace(/[^a-z0-9-_]/gi,'_')) || zip;
+      let i = 1;
+      for (const url of urls) {
+        const blob = await fetchAsBlob(url);
+        const ext = (url.split('.').pop() || 'jpg').split('?')[0];
+        folder.file(`img_${i}.${ext}`, blob);
+        i++;
+      }
+      const content = await zip.generateAsync({ type: 'blob' });
+      saveAs(content, `${(label || 'images').replace(/[^a-z0-9-_]/gi,'_')}.zip`);
     }
 
     // file counters
@@ -473,12 +513,28 @@
       subjects?.forEach(s=>{
         const li=document.createElement('li'); 
         li.className='item';
+
+        // Download-all button for this subject
+        if (s.images && s.images.length) {
+          const dlAll = document.createElement('button');
+          dlAll.className = 'btn-download-all';
+          dlAll.textContent = '⬇ All';
+          dlAll.title = 'Download all images';
+          dlAll.onclick = async (e) => { 
+            e.stopPropagation(); 
+            dlAll.disabled = true; 
+            try { await downloadAll(s.name || 'subject', s.images); }
+            finally { dlAll.disabled = false; }
+          };
+          li.appendChild(dlAll);
+        }
+
         const line=document.createElement('div'); 
         line.className='subject-line';
         line.textContent=`${s.name} [ ${s.task} | ${s.due || 'TBA'} ]`;
         li.appendChild(line);
 
-        // image summary
+        // image summary (first 3 thumbs)
         if(s.images&&s.images.length){
           const summary=document.createElement('div');
           summary.className='image-summary';
@@ -499,18 +555,7 @@
             wrap.className='image-wrapper';
             const img=document.createElement('img'); 
             img.src=url;
-            const dl=document.createElement('button'); 
-            dl.className='download-btn'; 
-            dl.textContent='⬇';
-            dl.onclick=(e)=>{ 
-              e.stopPropagation(); 
-              const a=document.createElement('a'); 
-              a.href=url; 
-              a.download="image"; 
-              a.click(); 
-            };
-            wrap.appendChild(img); 
-            wrap.appendChild(dl);
+            wrap.appendChild(img);
             imgRow.appendChild(wrap);
           });
         }
@@ -539,6 +584,22 @@
       reminders?.forEach(r=>{
         const li=document.createElement('li'); 
         li.className='item';
+
+        // Download-all button for this reminder
+        if (r.images && r.images.length) {
+          const dlAll = document.createElement('button');
+          dlAll.className = 'btn-download-all';
+          dlAll.textContent = '⬇ All';
+          dlAll.title = 'Download all images';
+          dlAll.onclick = async (e) => { 
+            e.stopPropagation(); 
+            dlAll.disabled = true; 
+            try { await downloadAll('reminder', r.images); }
+            finally { dlAll.disabled = false; }
+          };
+          li.appendChild(dlAll);
+        }
+
         const line=document.createElement('div'); 
         line.className='subject-line'; 
         line.textContent=r.text;
@@ -563,18 +624,7 @@
             wrap.className='image-wrapper';
             const img=document.createElement('img'); 
             img.src=url;
-            const dl=document.createElement('button'); 
-            dl.className='download-btn'; 
-            dl.textContent='⬇';
-            dl.onclick=(e)=>{ 
-              e.stopPropagation(); 
-              const a=document.createElement('a'); 
-              a.href=url; 
-              a.download="image"; 
-              a.click(); 
-            };
-            wrap.appendChild(img); 
-            wrap.appendChild(dl);
+            wrap.appendChild(img);
             imgRow.appendChild(wrap);
           });
         }
@@ -640,7 +690,7 @@
     }
 
     /************************************************************
-    * FORM HANDLERS (fix: prevent reload, upload, insert, refresh UI)
+    * FORM HANDLERS (prevent reload, upload, insert, refresh UI)
     ************************************************************/
     addSubjectForm?.addEventListener('submit', async (e) => {
       e.preventDefault(); // STOP page reload
