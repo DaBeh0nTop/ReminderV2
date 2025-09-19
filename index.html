@@ -1,2 +1,713 @@
-<h1> ON MAINTENANCE</h1>
-<h2> MAPERPERMIS DULDOG</h2>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>📚 Classwork & To-Do Reminder</title>
+
+  <!-- Google Font -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+
+  <!-- Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+
+  <style>
+    /************************************************************
+    * Root theme variables
+    ************************************************************/
+    :root {
+      --bg1:#9FB3DF; 
+      --bg2:#9EC6F3; 
+      --bg3:#A8E6CF; 
+      --bg4:#FFD3B6; 
+      --bg5:#FFAAA5;
+      --panel:rgba(255,255,255,0.12); 
+      --accent:#FFF1D5; 
+      --danger:#ff6961;
+      --text-dark:#1a1a1a; 
+      --success:#66ffb2; 
+      --uploading:#ffe066;
+    }
+
+    /************************************************************
+    * Base
+    ************************************************************/
+    * { 
+      box-sizing:border-box; 
+      margin:0; 
+      padding:0; 
+    }
+    body {
+      font-family:'Poppins',sans-serif; 
+      min-height:100vh;
+      display:flex; 
+      flex-direction:column; 
+      align-items:center;
+      padding:20px; 
+      color:#fff;
+      background:linear-gradient(135deg,var(--bg1),var(--bg2),var(--bg3),var(--bg4),var(--bg5));
+      background-size:600% 600%; 
+      animation:bgMove 18s ease infinite;
+    }
+
+    @keyframes bgMove { 
+      0%{background-position:0% 50%} 
+      50%{background-position:100% 50%} 
+      100%{background-position:0% 50%} 
+    }
+
+    /************************************************************
+    * Header
+    ************************************************************/
+    header { 
+      text-align:center; 
+      margin-bottom:20px; 
+      width:100%; 
+    }
+    header h1 { 
+      font-size:30px; 
+      font-weight:700; 
+      text-shadow:1px 2px 8px rgba(0,0,0,0.3); 
+    }
+    header h2 { 
+      font-size:14px; 
+      margin-top:6px; 
+      font-weight:400; 
+      opacity:0.85; 
+      animation:fade 2s infinite alternate; 
+    }
+    @keyframes fade { 
+      from{opacity:0.6} 
+      to{opacity:1} 
+    }
+
+    /************************************************************
+    * Panels
+    ************************************************************/
+    .container { 
+      width:100%; 
+      max-width:900px; 
+    }
+    .panel {
+      background:var(--panel); 
+      border-radius:16px; 
+      padding:18px; 
+      margin-bottom:20px;
+      backdrop-filter:blur(10px); 
+      box-shadow:0 8px 18px rgba(0,0,0,0.25); 
+      transition:transform .2s;
+    }
+    .panel:hover { 
+      transform:translateY(-3px); 
+    }
+    .small { 
+      font-size:13px; 
+      opacity:0.9; 
+    }
+
+    /************************************************************
+    * List Items
+    ************************************************************/
+    ul.plain { 
+      list-style:none; 
+      margin:12px 0; 
+      padding:0; 
+    }
+    li.item {
+      background:rgba(255,255,255,0.08); 
+      border-radius:10px; 
+      padding:12px 14px; 
+      margin-bottom:10px;
+      display:flex; 
+      flex-direction:column; 
+      cursor:pointer; 
+      transition:background .25s,transform .25s; 
+      position:relative;
+    }
+    li.item:hover { 
+      background:rgba(255,255,255,0.18); 
+      transform:scale(1.01); 
+    }
+    .subject-line { 
+      font-weight:600; 
+      font-size:15px; 
+    }
+
+    /************************************************************
+    * Image summary (tiny thumbnails)
+    ************************************************************/
+    .image-summary { 
+      display:flex; 
+      gap:6px; 
+      margin-top:6px; 
+      flex-wrap:wrap; 
+    }
+    .image-summary img { 
+      width:46px; 
+      height:36px; 
+      object-fit:cover; 
+      border-radius:4px; 
+    }
+
+    /************************************************************
+    * Expanded images row (with download)
+    ************************************************************/
+    .images-row { 
+      display:none; 
+      gap:8px; 
+      margin-top:8px; 
+      flex-wrap:wrap; 
+    }
+    .image-wrapper { 
+      position:relative; 
+      display:inline-block; 
+    }
+    .images-row img {
+      width:84px; 
+      height:64px; 
+      object-fit:cover; 
+      border-radius:6px;
+      cursor:pointer; 
+      transition:transform .2s;
+    }
+    .images-row img:hover { 
+      transform:scale(1.05); 
+    }
+    .download-btn {
+      position:absolute; 
+      bottom:4px; 
+      right:4px;
+      background:rgba(0,0,0,0.6); 
+      color:#fff; 
+      border:none;
+      font-size:12px; 
+      padding:2px 6px; 
+      border-radius:4px; 
+      cursor:pointer;
+    }
+
+    /************************************************************
+    * Buttons
+    ************************************************************/
+    .btn { 
+      background:var(--accent); 
+      color:var(--text-dark); 
+      border:none; 
+      border-radius:8px; 
+      padding:8px 14px; 
+      font-weight:600; 
+      cursor:pointer; 
+      margin-top:6px; 
+    }
+    .btn-danger { 
+      background:var(--danger); 
+      color:#fff; 
+      font-size:12px; 
+      padding:4px 8px; 
+      border-radius:6px; 
+      position:absolute; 
+      right:8px; 
+      top:8px; 
+    }
+
+    /************************************************************
+    * Inputs
+    ************************************************************/
+    input, textarea { 
+      width:100%; 
+      padding:10px; 
+      margin-top:6px; 
+      border:none; 
+      border-radius:10px; 
+      background:rgba(255,255,255,0.08); 
+      color:#fff; 
+      font-size:14px; 
+    }
+    textarea { 
+      min-height:70px; 
+      resize:vertical; 
+    }
+
+    .file-input { 
+      display:inline-block; 
+      padding:8px 12px; 
+      border-radius:10px; 
+      background:rgba(255,255,255,0.18); 
+      margin-top:8px; 
+      cursor:pointer; 
+      font-size:14px; 
+    }
+    .file-input input { 
+      display:none; 
+    }
+    .file-count { 
+      font-size:12px; 
+      opacity:0.8; 
+      margin-top:4px; 
+    }
+
+    .uploading { 
+      margin-top:6px; 
+      font-size:13px; 
+      color:var(--uploading); 
+      animation:blink 1.2s infinite; 
+    }
+    @keyframes blink { 
+      0%,100% { opacity:0.6; } 
+      50% { opacity:1 } 
+    }
+
+    pre { 
+      white-space:pre-wrap; 
+      max-height:250px; 
+      overflow:auto; 
+      font-size:12px; 
+      background:rgba(0,0,0,0.3); 
+      padding:8px; 
+      border-radius:8px; 
+    }
+
+    /************************************************************
+    * Admin toggle (bottom right)
+    ************************************************************/
+    #adminToggle {
+      position:fixed; 
+      bottom:20px; 
+      right:20px;
+      background:var(--accent); 
+      color:var(--text-dark);
+      border:none; 
+      border-radius:10px; 
+      padding:8px 14px; 
+      font-weight:600; 
+      cursor:pointer;
+      box-shadow:0 4px 10px rgba(0,0,0,0.25); 
+      transition:transform .2s;
+    }
+    #adminToggle:hover { 
+      transform:scale(1.05); 
+    }
+    #logoutBtn { 
+      display:none; 
+    }
+
+    .hidden { 
+      display:none!important; 
+    }
+
+    @media(max-width:600px){
+      .images-row img { 
+        width:48%; 
+        height:100px; 
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>GALILEANS REMINDER</h1>
+    <h2>Made by Bisayang Dabeh</h2>
+  </header>
+
+  <main class="container">
+    <!-- SUBJECTS -->
+    <section class="panel" id="subjectsPanel">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <div style="font-size:14px;opacity:0.9">SUBJECTS NEED TO DO</div>
+          <div class="small">Click subject to view details</div>
+        </div>
+        <div class="small" id="subjectsCount">0</div>
+      </div>
+      <ul id="subjectsList" class="plain"></ul>
+    </section>
+
+    <!-- REMINDERS -->
+    <section class="panel" id="remindersPanel">
+      <div style="font-size:14px;opacity:0.9;margin-bottom:4px">EXTRA / REMINDERS</div>
+      <ul id="remindersList" class="plain"></ul>
+    </section>
+
+    <!-- ADMIN LOGIN / PANEL -->
+    <section class="panel hidden" id="loginPanel">
+      <div id="loginForm">
+        <div style="font-weight:600;margin-bottom:8px">🔑 Admin Login</div>
+        <input id="email" type="email" placeholder="admin email" />
+        <input id="password" type="password" placeholder="password" />
+        <button class="btn" id="loginBtn" style="margin-top:10px">Login as Admin</button>
+        <div class="small" id="loginStatus"></div>
+      </div>
+      <div id="adminPanel" class="hidden" style="margin-top:16px">
+        <div style="font-weight:700;margin-bottom:8px">⚙️ Admin Panel</div>
+        <!-- Add Subject -->
+        <form id="addSubjectForm">
+          <input id="subjectName" type="text" placeholder="Subject e.g. SCIENCE" required />
+          <input id="subjectTask" type="text" placeholder="Task e.g. NOTES" required />
+          <input id="subjectDue" type="text" placeholder="Due (TOM, Tuesday)" />
+          <label class="file-input">📷 Upload Images <input id="subjectFiles" type="file" multiple accept="image/*" /></label>
+          <div class="file-count" id="subjectFileCount"></div>
+          <button class="btn" type="submit" style="margin-top:8px">➕ Add Subject</button>
+          <div class="small" id="subjectFormMsg"></div>
+        </form>
+        <hr style="margin:14px 0;opacity:0.2" />
+        <!-- Add Reminder -->
+        <form id="addReminderForm">
+          <textarea id="reminderText" placeholder="Reminder text..." required></textarea>
+          <label class="file-input">📷 Upload Images <input id="reminderFiles" type="file" multiple accept="image/*" /></label>
+          <div class="file-count" id="reminderFileCount"></div>
+          <button class="btn" type="submit" style="margin-top:8px">➕ Add Reminder</button>
+          <div class="small" id="reminderFormMsg"></div>
+        </form>
+      </div>
+    </section>
+
+    <!-- DEBUG -->
+    <section class="panel" id="debugPanel">
+      <div style="font-weight:600;margin-bottom:6px">Debug / Status</div>
+      <pre id="debugLog"></pre>
+    </section>
+  </main>
+
+  <!-- Admin Button (bottom right) -->
+  <button id="adminToggle">🔑 ADMIN</button>
+  <button class="hidden" id="logoutBtn" onclick="logout()">Logout</button>
+
+  <script>
+    /************************************************************
+    * Supabase Init
+    ************************************************************/
+    const SUPABASE_URL = "https://mwosezbzzxjzpgxsdpdr.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im13b3NlemJ6enhqenBneHNkcGRyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgwMjk5ODQsImV4cCI6MjA3MzYwNTk4NH0.LzE9RoKMx9zsMdqydL1vSNeUCNlpD2izQMNCrqiAeCk";
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const STORAGE_BUCKET = "uploads"; // make sure this public bucket exists
+
+    /************************************************************
+    * DOM References
+    ************************************************************/
+    const subjectsList=document.getElementById('subjectsList');
+    const remindersList=document.getElementById('remindersList');
+    const subjectsCount=document.getElementById('subjectsCount');
+    const loginPanel=document.getElementById('loginPanel');
+    const loginBtn=document.getElementById('loginBtn');
+    const loginStatus=document.getElementById('loginStatus');
+    const adminPanel=document.getElementById('adminPanel');
+    const logoutBtn=document.getElementById('logoutBtn');
+    const subjectFormMsg=document.getElementById('subjectFormMsg');
+    const reminderFormMsg=document.getElementById('reminderFormMsg');
+    const debugLog=document.getElementById('debugLog');
+    const adminToggle=document.getElementById('adminToggle');
+    const subjectFileCount=document.getElementById('subjectFileCount');
+    const reminderFileCount=document.getElementById('reminderFileCount');
+
+    // Form inputs
+    const addSubjectForm = document.getElementById('addSubjectForm');
+    const subjectName = document.getElementById('subjectName');
+    const subjectTask = document.getElementById('subjectTask');
+    const subjectDue  = document.getElementById('subjectDue');
+    const subjectFilesEl = document.getElementById('subjectFiles');
+
+    const addReminderForm = document.getElementById('addReminderForm');
+    const reminderText = document.getElementById('reminderText');
+    const reminderFilesEl = document.getElementById('reminderFiles');
+
+    let isAdmin=false;
+
+    /************************************************************
+    * Utilities
+    ************************************************************/
+    function logFixed(msg) {
+      const fixed = msg || "Loading subjects + reminders... Render complete.";
+      debugLog.textContent=fixed;
+    }
+    function toggleLogin(){ 
+      loginPanel.classList.toggle('hidden'); 
+    }
+    adminToggle.onclick=()=> toggleLogin();
+
+    // simple uid for file paths
+    const uid = () => Math.random().toString(36).slice(2) + Date.now();
+
+    // upload helper -> returns array of public URLs
+    async function uploadFilesReturnUrls(inputEl, subfolder) {
+      const files = Array.from(inputEl?.files || []);
+      if (!files.length) return [];
+      const urls = [];
+      for (const f of files) {
+        const path = `${subfolder}/${uid()}-${f.name}`;
+        const { error: upErr } = await supabase.storage
+          .from(STORAGE_BUCKET)
+          .upload(path, f, { cacheControl: '3600', upsert: false, contentType: f.type || 'application/octet-stream' });
+        if (upErr) throw upErr;
+        const { data } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(path);
+        urls.push(data.publicUrl);
+      }
+      return urls;
+    }
+
+    // file counters
+    subjectFilesEl?.addEventListener('change', () => {
+      subjectFileCount.textContent = subjectFilesEl.files.length
+        ? `${subjectFilesEl.files.length} image(s) selected` : '';
+    });
+    reminderFilesEl?.addEventListener('change', () => {
+      reminderFileCount.textContent = reminderFilesEl.files.length
+        ? `${reminderFilesEl.files.length} image(s) selected` : '';
+    });
+
+    /************************************************************
+    * Data Load
+    ************************************************************/
+    async function loadData(){
+      subjectsList.innerHTML=''; 
+      remindersList.innerHTML='';
+      logFixed();
+
+      // ---- SUBJECTS ----
+      const { data: subjects, error: subjErr } = await supabase.from('subjects').select('*').order('id');
+      if (subjErr) {
+        logFixed(`Subjects load error: ${subjErr.message}`);
+        return;
+      }
+      subjectsCount.textContent = subjects?.length || 0;
+
+      subjects?.forEach(s=>{
+        const li=document.createElement('li'); 
+        li.className='item';
+        const line=document.createElement('div'); 
+        line.className='subject-line';
+        line.textContent=`${s.name} [ ${s.task} | ${s.due || 'TBA'} ]`;
+        li.appendChild(line);
+
+        // image summary
+        if(s.images&&s.images.length){
+          const summary=document.createElement('div');
+          summary.className='image-summary';
+          s.images.slice(0,3).forEach(url=>{
+            const img=document.createElement('img'); 
+            img.src=url;
+            summary.appendChild(img);
+          });
+          li.appendChild(summary);
+        }
+
+        // expanded images row
+        const imgRow=document.createElement('div'); 
+        imgRow.className='images-row';
+        if(s.images&&s.images.length){
+          s.images.forEach(url=>{
+            const wrap=document.createElement('div'); 
+            wrap.className='image-wrapper';
+            const img=document.createElement('img'); 
+            img.src=url;
+            const dl=document.createElement('button'); 
+            dl.className='download-btn'; 
+            dl.textContent='⬇';
+            dl.onclick=(e)=>{ 
+              e.stopPropagation(); 
+              const a=document.createElement('a'); 
+              a.href=url; 
+              a.download="image"; 
+              a.click(); 
+            };
+            wrap.appendChild(img); 
+            wrap.appendChild(dl);
+            imgRow.appendChild(wrap);
+          });
+        }
+        li.appendChild(imgRow);
+        li.onclick=()=> imgRow.style.display=imgRow.style.display==='flex'?'none':'flex';
+
+        if(isAdmin){
+          const del=document.createElement('button'); 
+          del.className='btn-danger'; 
+          del.textContent='✖';
+          del.onclick=async(e)=>{ 
+            e.stopPropagation(); 
+            await deleteSubject(s.id); 
+          };
+          li.appendChild(del);
+        }
+        subjectsList.appendChild(li);
+      });
+
+      // ---- REMINDERS ----
+      const { data: reminders, error: remErr } = await supabase.from('reminders').select('*').order('id');
+      if (remErr) {
+        logFixed(`Reminders load error: ${remErr.message}`);
+        return;
+      }
+      reminders?.forEach(r=>{
+        const li=document.createElement('li'); 
+        li.className='item';
+        const line=document.createElement('div'); 
+        line.className='subject-line'; 
+        line.textContent=r.text;
+        li.appendChild(line);
+
+        if(r.images&&r.images.length){
+          const summary=document.createElement('div'); 
+          summary.className='image-summary';
+          r.images.slice(0,3).forEach(url=>{
+            const img=document.createElement('img'); 
+            img.src=url;
+            summary.appendChild(img);
+          });
+          li.appendChild(summary);
+        }
+
+        const imgRow=document.createElement('div'); 
+        imgRow.className='images-row';
+        if(r.images&&r.images.length){
+          r.images.forEach(url=>{
+            const wrap=document.createElement('div'); 
+            wrap.className='image-wrapper';
+            const img=document.createElement('img'); 
+            img.src=url;
+            const dl=document.createElement('button'); 
+            dl.className='download-btn'; 
+            dl.textContent='⬇';
+            dl.onclick=(e)=>{ 
+              e.stopPropagation(); 
+              const a=document.createElement('a'); 
+              a.href=url; 
+              a.download="image"; 
+              a.click(); 
+            };
+            wrap.appendChild(img); 
+            wrap.appendChild(dl);
+            imgRow.appendChild(wrap);
+          });
+        }
+        li.appendChild(imgRow);
+        li.onclick=()=> imgRow.style.display=imgRow.style.display==='flex'?'none':'flex';
+
+        if(isAdmin){
+          const del=document.createElement('button'); 
+          del.className='btn-danger'; 
+          del.textContent='✖';
+          del.onclick=async(e)=>{ 
+            e.stopPropagation(); 
+            await deleteReminder(r.id); 
+          };
+          li.appendChild(del);
+        }
+        remindersList.appendChild(li);
+      });
+
+      logFixed();
+    }
+
+    /************************************************************
+    * Delete functions
+    ************************************************************/
+    async function deleteSubject(id){ 
+      const { error } = await supabase.from('subjects').delete().eq('id',id); 
+      if (error) { logFixed(`Delete subject error: ${error.message}`); }
+      await loadData(); 
+    }
+    async function deleteReminder(id){ 
+      const { error } = await supabase.from('reminders').delete().eq('id',id); 
+      if (error) { logFixed(`Delete reminder error: ${error.message}`); }
+      await loadData(); 
+    }
+
+    /************************************************************
+    * Auth
+    ************************************************************/
+    loginBtn.onclick=async()=>{
+      const email=document.getElementById('email').value;
+      const pass=document.getElementById('password').value;
+      loginStatus.textContent="Logging in...";
+      const {data,error}=await supabase.auth.signInWithPassword({email,password:pass});
+      if(error){ 
+        loginStatus.textContent=error.message; 
+        return; 
+      }
+      loginStatus.textContent="Logged in ✔";
+      isAdmin=true; 
+      adminPanel.classList.remove('hidden'); 
+      logoutBtn.classList.remove('hidden');
+      adminToggle.textContent='⚙️ PANEL'; 
+      loadData();
+    };
+    async function logout(){ 
+      await supabase.auth.signOut(); 
+      isAdmin=false; 
+      adminPanel.classList.add('hidden'); 
+      logoutBtn.classList.add('hidden'); 
+      adminToggle.textContent='🔑 ADMIN'; 
+      loadData(); 
+    }
+
+    /************************************************************
+    * FORM HANDLERS (fix: prevent reload, upload, insert, refresh UI)
+    ************************************************************/
+    addSubjectForm?.addEventListener('submit', async (e) => {
+      e.preventDefault(); // STOP page reload
+      subjectFormMsg.textContent = 'Uploading...';
+      const btn = addSubjectForm.querySelector('button[type="submit"]');
+      btn.disabled = true;
+
+      try {
+        const imgUrls = await uploadFilesReturnUrls(subjectFilesEl, 'subjects');
+        const payload = {
+          name: subjectName.value.trim(),
+          task: subjectTask.value.trim(),
+          due:  subjectDue.value.trim(),
+          images: imgUrls
+        };
+        if (!payload.name || !payload.task) {
+          throw new Error('Name and Task are required.');
+        }
+        const { error } = await supabase.from('subjects').insert([payload]);
+        if (error) throw error;
+
+        addSubjectForm.reset();
+        subjectFileCount.textContent = '';
+        subjectFormMsg.textContent = 'Added ✅';
+        await loadData();
+      } catch (err) {
+        subjectFormMsg.textContent = `Error: ${err.message || err}`;
+      } finally {
+        btn.disabled = false;
+        setTimeout(()=> subjectFormMsg.textContent = '', 2500);
+      }
+    });
+
+    addReminderForm?.addEventListener('submit', async (e) => {
+      e.preventDefault(); // STOP page reload
+      reminderFormMsg.textContent = 'Uploading...';
+      const btn = addReminderForm.querySelector('button[type="submit"]');
+      btn.disabled = true;
+
+      try {
+        const imgUrls = await uploadFilesReturnUrls(reminderFilesEl, 'reminders');
+        const payload = {
+          text: reminderText.value.trim(),
+          images: imgUrls
+        };
+        if (!payload.text) {
+          throw new Error('Reminder text is required.');
+        }
+        const { error } = await supabase.from('reminders').insert([payload]);
+        if (error) throw error;
+
+        addReminderForm.reset();
+        reminderFileCount.textContent = '';
+        reminderFormMsg.textContent = 'Added ✅';
+        await loadData();
+      } catch (err) {
+        reminderFormMsg.textContent = `Error: ${err.message || err}`;
+      } finally {
+        btn.disabled = false;
+        setTimeout(()=> reminderFormMsg.textContent = '', 2500);
+      }
+    });
+
+    /************************************************************
+    * Initial Load
+    ************************************************************/
+    loadData();
+  </script>
+</body>
+</html>
